@@ -239,9 +239,12 @@ export default function PublicationsGrid({ publications, locale }: Props) {
                   {isRTL ? 'قراءة التفاصيل' : 'Read More'} <Arrow className="w-4 h-4" />
                 </div>
                 {featured.pdfUrl && (
-                  <a href={featured.pdfUrl} onClick={e => e.stopPropagation()} className="flex items-center gap-2 text-xs font-black px-4 py-2 rounded-full bg-white/10 text-white/60 hover:bg-secondary-500 hover:text-white border border-white/20 transition-all" download>
+                  <button
+                    onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(featured.pdfUrl, '_blank') }}
+                    className="flex items-center gap-2 text-xs font-black px-4 py-2 rounded-full bg-white/10 text-white/60 hover:bg-secondary-500 hover:text-white border border-white/20 transition-all"
+                  >
                     <Download className="w-3.5 h-3.5" /> PDF
-                  </a>
+                  </button>
                 )}
               </div>
             </div>
@@ -286,9 +289,9 @@ export default function PublicationsGrid({ publications, locale }: Props) {
                       {pub.pages && <><span className="mx-1 text-neutral-200">·</span>{pub.pages}{isRTL ? 'ص' : 'p'}</>}
                     </span>
                     {pub.pdfUrl && (
-                      <a href={pub.pdfUrl} onClick={e => e.stopPropagation()} className="flex items-center gap-1 font-bold text-secondary-500 hover:text-secondary-600" download>
+                      <button onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(pub.pdfUrl, '_blank') }} className="flex items-center gap-1 font-bold text-secondary-500 hover:text-secondary-600">
                         <Download className="w-3 h-3" /> PDF
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -332,9 +335,9 @@ export default function PublicationsGrid({ publications, locale }: Props) {
                 <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
                   {pub.pages && <span className="text-xs text-neutral-400 flex items-center gap-1"><FileText className="w-3 h-3" />{pub.pages} {isRTL ? 'ص' : 'p'}</span>}
                   {pub.pdfUrl && (
-                    <a href={pub.pdfUrl} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs font-bold text-secondary-500 hover:text-secondary-600 px-2.5 py-1 rounded-full border border-secondary-200 bg-secondary-50 transition-colors" download>
+                    <button onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(pub.pdfUrl, '_blank') }} className="flex items-center gap-1 text-xs font-bold text-secondary-500 hover:text-secondary-600 px-2.5 py-1 rounded-full border border-secondary-200 bg-secondary-50 transition-colors">
                       <Download className="w-3 h-3" /> PDF
-                    </a>
+                    </button>
                   )}
                 </div>
                 <Arrow className="w-4 h-4 text-neutral-300 group-hover:text-secondary-500 transition-colors shrink-0" />
