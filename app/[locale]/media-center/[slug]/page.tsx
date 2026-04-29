@@ -408,7 +408,7 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
         </div>
       </div>
 
-      <DesignSwitcher darkHref={darkHref} lightHref={lightHref} classicHref={classicHref} current={V.variant} isRTL={isRTL} />
+      <DesignSwitcher darkHref={darkHref} lightHref={lightHref} classicHref={classicHref} current={V.variant as 'light' | 'dark' | 'classic'} isRTL={isRTL} />
     </>
   )
 }
