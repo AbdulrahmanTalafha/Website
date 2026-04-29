@@ -1,0 +1,215 @@
+'use client'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { Locale } from '@/types'
+import { navigationItems } from '@/data/navigation'
+import { siteData } from '@/data/site'
+import LanguageSwitcher from './LanguageSwitcher'
+import MobileNav from './MobileNav'
+import { cn } from '@/lib/utils'
+import { Search, Menu, X, Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react'
+
+interface HeaderProps {
+  locale: Locale
+}
+
+const socialLinks = [
+  { icon: Facebook, href: 'https://facebook.com/werise.jo', label: 'Facebook' },
+  { icon: Twitter, href: 'https://twitter.com/werise_jo', label: 'Twitter' },
+  { icon: Instagram, href: 'https://instagram.com/werise.jo', label: 'Instagram' },
+  { icon: Linkedin, href: 'https://linkedin.com/company/werise-jo', label: 'LinkedIn' },
+  { icon: Youtube, href: 'https://youtube.com/@werise-jo', label: 'YouTube' },
+]
+
+export default function Header({ locale }: HeaderProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const pathname = usePathname()
+  const isRTL = locale === 'ar'
+  const Arrow = isRTL ? ArrowLeft : ArrowRight
+
+  useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  return (
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50">
+        {/* ── Top bar: social | logo | search+lang ── */}
+        <div className="bg-white border-b border-neutral-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 lg:h-20">
+
+              {/* Social icons */}
+              <div className="hidden md:flex items-center gap-1">
+                {socialLinks.map(({ icon: Icon, href, label }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-primary-500 hover:bg-primary-50 transition-colors"
+                  >
+                    <Icon className="w-4 h-4" />
+                  </a>
+                ))}
+              </div>
+
+              {/* Logo — centered */}
+              <Link
+                href={`/${locale}`}
+                className="flex items-center"
+                aria-label={siteData.name[locale]}
+              >
+                <img
+                  src={locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg'}
+                  alt={siteData.name[locale]}
+                  className="h-10 lg:h-12 w-auto"
+                />
+              </Link>
+
+              {/* Right: search + lang + mobile burger */}
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/${locale}/search`}
+                  aria-label={locale === 'ar' ? 'بحث' : 'Search'}
+                  className="p-2 rounded-full text-neutral-500 hover:text-primary-500 hover:bg-primary-50 transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                </Link>
+                <LanguageSwitcher locale={locale} scrolled={true} />
+                <button
+                  onClick={() => setMobileOpen(!mobileOpen)}
+                  className="lg:hidden p-2 rounded-full text-neutral-500 hover:bg-neutral-100 transition-colors"
+                  aria-label={locale === 'ar' ? 'القائمة' : 'Menu'}
+                  aria-expanded={mobileOpen}
+                >
+                  {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Nav bar: dark background ── */}
+        <nav
+          className="hidden lg:block bg-primary-600 shadow-lg"
+          aria-label="Main navigation"
+          onMouseLeave={() => setActiveDropdown(null)}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ul className="flex items-center justify-center gap-0">
+              {navigationItems.map((item) => {
+                const isActive = pathname === `/${locale}${item.href === '/' ? '' : item.href}`
+                const isOpen = activeDropdown === item.href
+                return (
+                  <li
+                    key={item.href}
+                    className="relative"
+                    onMouseEnter={() => setActiveDropdown(item.href)}
+                  >
+                    <Link
+                      href={`/${locale}${item.href === '/' ? '' : item.href}`}
+                      className={cn(
+                        'relative flex items-center gap-1 px-4 py-4 text-sm font-semibold transition-colors whitespace-nowrap',
+                        'text-white/80 hover:text-white',
+                        isActive && 'text-white',
+                        isOpen && 'text-white'
+                      )}
+                    >
+                      {item.label[locale]}
+                      {item.children && (
+                        <svg className="w-3 h-3 mt-px opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
+                      {/* Active underline */}
+                      {isActive && (
+                        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-secondary-500 rounded-full" />
+                      )}
+                      {/* Hover underline */}
+                      {!isActive && (
+                        <span className={cn(
+                          'absolute bottom-0 left-3 right-3 h-0.5 bg-white/30 rounded-full scale-x-0 transition-transform origin-center',
+                          isOpen && 'scale-x-100'
+                        )} />
+                      )}
+                    </Link>
+
+                    {/* ── Hover dropdown with description ── */}
+                    {isOpen && (
+                      <div className={cn(
+                        'absolute top-full z-50 min-w-[280px] bg-white shadow-2xl border-t-2 border-secondary-500',
+                        isRTL ? 'right-0' : 'left-0'
+                      )}>
+                        {item.children ? (
+                          /* Has sub-links: show description + sub-links */
+                          <div>
+                            {item.description && (
+                              <div className="px-5 py-4 bg-primary-50 border-b border-neutral-100">
+                                <p className="text-xs text-primary-500 leading-relaxed">{item.description[locale]}</p>
+                              </div>
+                            )}
+                            <ul className="py-2">
+                              {item.children.map((child) => (
+                                <li key={child.href}>
+                                  <Link
+                                    href={`/${locale}${child.href}`}
+                                    className="flex items-start gap-3 px-5 py-3 hover:bg-neutral-50 group transition-colors"
+                                  >
+                                    <Arrow className={cn(
+                                      'w-4 h-4 mt-0.5 shrink-0 text-secondary-400 group-hover:text-secondary-500 transition-colors',
+                                    )} />
+                                    <div>
+                                      <div className="text-sm font-semibold text-primary-600 group-hover:text-secondary-500 transition-colors">
+                                        {child.label[locale]}
+                                      </div>
+                                      {child.description && (
+                                        <div className="text-xs text-neutral-400 mt-0.5 leading-snug">
+                                          {child.description[locale]}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          /* No sub-links: show description card */
+                          item.description && (
+                            <Link
+                              href={`/${locale}${item.href === '/' ? '' : item.href}`}
+                              className="flex items-start gap-4 px-5 py-4 hover:bg-neutral-50 group transition-colors"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-secondary-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <Arrow className="w-4 h-4 text-secondary-500" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-primary-600 mb-1 group-hover:text-secondary-500 transition-colors">
+                                  {item.label[locale]}
+                                </div>
+                                <p className="text-xs text-neutral-500 leading-relaxed">
+                                  {item.description[locale]}
+                                </p>
+                              </div>
+                            </Link>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      {/* Spacer for fixed header (top bar h-20 + nav py-4 ~52px = 132px) */}
+      <div className="h-16 lg:h-[132px]" />
+
+      <MobileNav locale={locale} isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+    </>
+  )
+}

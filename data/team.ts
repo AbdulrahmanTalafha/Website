@@ -1,0 +1,152 @@
+import type { TeamMember, GovernanceBody } from '@/types'
+
+export const teamData: TeamMember[] = [
+  {
+    id: 'tm-1',
+    slug: 'layla-al-hassan',
+    name: { ar: 'ليلى الحسن', en: 'Layla Al-Hassan' },
+    position: { ar: 'المديرة العامة', en: 'General Director' },
+    department: { ar: 'الإدارة العليا', en: 'Senior Management' },
+    bio: {
+      ar: 'تتمتع ليلى بخبرة تمتد لأكثر من 15 عامًا في مجال المجتمع المدني وحقوق الإنسان في الأردن والمنطقة العربية. حاصلة على ماجستير في القانون الدولي لحقوق الإنسان من جامعة عمّان الأهلية.',
+      en: 'Layla has over 15 years of experience in civil society and human rights in Jordan and the Arab region. She holds a Master\'s degree in International Human Rights Law from Al-Ahliyya Amman University.',
+    },
+    email: 'layla.hassan@werise.org.jo',
+    linkedin: 'https://linkedin.com/in/layla-alhassan',
+    photo: 'https://picsum.photos/seed/tm1/300/300',
+    order: 1,
+  },
+  {
+    id: 'tm-2',
+    slug: 'omar-al-farsi',
+    name: { ar: 'عمر الفارسي', en: 'Omar Al-Farsi' },
+    position: { ar: 'مدير البرامج', en: 'Programs Manager' },
+    department: { ar: 'البرامج', en: 'Programs' },
+    bio: {
+      ar: 'عمر متخصص في إدارة البرامج التنموية وله خبرة في تصميم وتنفيذ مشاريع المشاركة المدنية والمساءلة. حاصل على بكالوريوس في العلوم السياسية من الجامعة الأردنية.',
+      en: 'Omar specializes in developmental program management with experience in designing and implementing civic participation and accountability projects. He holds a BA in Political Science from the University of Jordan.',
+    },
+    email: 'omar.farsi@werise.org.jo',
+    linkedin: 'https://linkedin.com/in/omar-alfarsi',
+    photo: 'https://picsum.photos/seed/tm2/300/300',
+    order: 2,
+  },
+  {
+    id: 'tm-3',
+    slug: 'nour-khalil',
+    name: { ar: 'نور خليل', en: 'Nour Khalil' },
+    position: { ar: 'باحثة أولى', en: 'Senior Researcher' },
+    department: { ar: 'البحث والتطوير', en: 'Research & Development' },
+    bio: {
+      ar: 'نور باحثة متخصصة في دراسات الديمقراطية والتحولات السياسية في العالم العربي. لديها عدد من الأبحاث المنشورة في مجلات محكّمة دولية، وتُجيد العربية والإنجليزية والفرنسية.',
+      en: 'Nour is a specialized researcher in democracy studies and political transitions in the Arab world. She has several published papers in international peer-reviewed journals and is fluent in Arabic, English, and French.',
+    },
+    email: 'nour.khalil@werise.org.jo',
+    linkedin: 'https://linkedin.com/in/nour-khalil',
+    photo: 'https://picsum.photos/seed/tm3/300/300',
+    order: 3,
+  },
+  {
+    id: 'tm-4',
+    slug: 'tariq-mansour',
+    name: { ar: 'طارق منصور', en: 'Tariq Mansour' },
+    position: { ar: 'مسؤول الحقوق الرقمية', en: 'Digital Rights Officer' },
+    department: { ar: 'الحقوق الرقمية', en: 'Digital Rights' },
+    bio: {
+      ar: 'طارق متخصص في أمن المعلومات والحقوق الرقمية، يقود فريق المرصد الرقمي لرصد خطاب الكراهية والعنف الرقمي. حاصل على شهادة في علوم الحاسوب وأمن المعلومات.',
+      en: 'Tariq specializes in information security and digital rights, leading the Digital Observatory team for monitoring hate speech and digital violence. He holds a degree in Computer Science and Information Security.',
+    },
+    email: 'tariq.mansour@werise.org.jo',
+    linkedin: 'https://linkedin.com/in/tariq-mansour',
+    photo: 'https://picsum.photos/seed/tm4/300/300',
+    order: 4,
+  },
+  {
+    id: 'tm-5',
+    slug: 'rima-haddad',
+    name: { ar: 'ريما حداد', en: 'Rima Haddad' },
+    position: { ar: 'مسؤولة الاتصال والإعلام', en: 'Communication & Media Officer' },
+    department: { ar: 'الاتصال والإعلام', en: 'Communication & Media' },
+    bio: {
+      ar: 'ريما صحفية وإعلامية متخصصة في التواصل المؤسسي وإدارة وسائل التواصل الاجتماعي. تتمتع بخبرة واسعة في إنتاج المحتوى الرقمي والإعلامي لمنظمات المجتمع المدني.',
+      en: 'Rima is a journalist and media specialist with expertise in institutional communication and social media management. She has extensive experience producing digital and media content for civil society organizations.',
+    },
+    email: 'rima.haddad@werise.org.jo',
+    linkedin: 'https://linkedin.com/in/rima-haddad',
+    photo: 'https://picsum.photos/seed/tm5/300/300',
+    order: 5,
+  },
+  {
+    id: 'tm-6',
+    slug: 'khaled-nabulsi',
+    name: { ar: 'خالد نابلسي', en: 'Khaled Nabulsi' },
+    position: { ar: 'منسق مشاريع أول', en: 'Senior Project Coordinator' },
+    department: { ar: 'البرامج', en: 'Programs' },
+    bio: {
+      ar: 'خالد لديه خبرة 8 سنوات في تنسيق المشاريع التنموية وإدارة العلاقات مع الجهات المانحة. يتخصص في مشاريع التنمية المجتمعية وتمكين الشباب.',
+      en: 'Khaled has 8 years of experience coordinating development projects and managing donor relations. He specializes in community development and youth empowerment projects.',
+    },
+    email: 'khaled.nabulsi@werise.org.jo',
+    photo: 'https://picsum.photos/seed/tm6/300/300',
+    order: 6,
+  },
+  {
+    id: 'tm-7',
+    slug: 'dina-rashid',
+    name: { ar: 'دينا رشيد', en: 'Dina Rashid' },
+    position: { ar: 'أخصائية النوع الاجتماعي', en: 'Gender Specialist' },
+    department: { ar: 'النوع الاجتماعي', en: 'Gender' },
+    bio: {
+      ar: 'دينا متخصصة في قضايا النوع الاجتماعي وتمكين المرأة، وتشرف على دمج منظور النوع الاجتماعي في جميع برامج المركز. حاصلة على ماجستير في الدراسات النسوية والنوع الاجتماعي.',
+      en: 'Dina specializes in gender issues and women empowerment, overseeing the mainstreaming of gender perspectives across all Center programs. She holds a Master\'s in Feminist and Gender Studies.',
+    },
+    email: 'dina.rashid@werise.org.jo',
+    linkedin: 'https://linkedin.com/in/dina-rashid',
+    photo: 'https://picsum.photos/seed/tm7/300/300',
+    order: 7,
+  },
+  {
+    id: 'tm-8',
+    slug: 'samir-al-najjar',
+    name: { ar: 'سامر النجار', en: 'Samir Al-Najjar' },
+    position: { ar: 'مسؤول الشؤون المالية والإدارية', en: 'Finance & Admin Officer' },
+    department: { ar: 'المالية والإدارة', en: 'Finance & Administration' },
+    bio: {
+      ar: 'سامر محاسب قانوني معتمد ولديه خبرة 10 سنوات في إدارة الشؤون المالية لمنظمات المجتمع المدني والمشاريع الممولة دوليًا.',
+      en: 'Samir is a certified public accountant with 10 years of experience managing financial affairs for civil society organizations and internationally funded projects.',
+    },
+    email: 'samir.najjar@werise.org.jo',
+    photo: 'https://picsum.photos/seed/tm8/300/300',
+    order: 8,
+  },
+]
+
+export const governanceData: GovernanceBody[] = [
+  {
+    id: 'board',
+    title: { ar: 'مجلس الأمناء', en: 'Board of Trustees' },
+    description: {
+      ar: 'يتولى مجلس الأمناء الإشراف الاستراتيجي على المركز وضمان التوافق مع رسالته وقيمه، ويضم خبراء من مختلف المجالات المدنية والقانونية والأكاديمية.',
+      en: 'The Board of Trustees provides strategic oversight of the Center and ensures alignment with its mission and values. It includes experts from various civil, legal, and academic fields.',
+    },
+    members: ['tm-1'],
+  },
+  {
+    id: 'executive',
+    title: { ar: 'الفريق التنفيذي', en: 'Executive Team' },
+    description: {
+      ar: 'يدير الفريق التنفيذي العمليات اليومية للمركز وتنفيذ البرامج والمشاريع وفق الاستراتيجية المعتمدة.',
+      en: 'The Executive Team manages the Center\'s daily operations and implements programs and projects according to the approved strategy.',
+    },
+    members: ['tm-1', 'tm-2', 'tm-5', 'tm-8'],
+  },
+  {
+    id: 'technical',
+    title: { ar: 'الفريق الفني والبرامجي', en: 'Technical & Programs Team' },
+    description: {
+      ar: 'يضم الفريق الفني متخصصين في البحث والبرامج والحقوق الرقمية والنوع الاجتماعي لتحقيق أثر برامجي مستدام.',
+      en: 'The Technical Team includes specialists in research, programs, digital rights, and gender to achieve sustainable programmatic impact.',
+    },
+    members: ['tm-3', 'tm-4', 'tm-6', 'tm-7'],
+  },
+]

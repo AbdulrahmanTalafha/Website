@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #2B245B;
+  --color-secondary: #FA382E;
+  --color-bg: #F8F7F4;
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-cairo: 'Cairo', 'Noto Sans Arabic', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-primary);
+}
+
+[dir="rtl"] body {
+  font-family: var(--font-cairo);
+}
+
+[dir="ltr"] body {
+  font-family: var(--font-inter);
+}
+
+/* ─── Typography ─────────────────────────────────────────────── */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] p,
+[dir="rtl"] span,
+[dir="rtl"] a,
+[dir="rtl"] li,
+[dir="rtl"] button {
+  font-family: var(--font-cairo);
+  letter-spacing: 0;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F0EFE9;
+}
+::-webkit-scrollbar-thumb {
+  background: #2B245B;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FA382E;
+}
+
+/* ─── Animations ─────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-24px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.animate-fade-in    { animation: fadeIn 0.6s ease forwards; }
+.animate-slide-up   { animation: slideUp 0.5s ease forwards; }
+.animate-slide-right { animation: slideInRight 0.5s ease forwards; }
+.animate-slide-left { animation: slideInLeft 0.5s ease forwards; }
+
+/* ─── Scroll reveal ──────────────────────────────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transition-property: opacity, transform;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: 700ms;
+  will-change: opacity, transform;
+}
+
+[data-reveal="up"]    { transform: translateY(40px); }
+[data-reveal="down"]  { transform: translateY(-30px); }
+[data-reveal="left"]  { transform: translateX(-40px); }
+[data-reveal="right"] { transform: translateX(40px); }
+[data-reveal="scale"] { transform: scale(0.94); }
+[data-reveal="fade"]  { transform: none; }
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Stagger delays for child items */
+[data-reveal-stagger] > * {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+[data-reveal-stagger].is-visible > *:nth-child(1)  { opacity: 1; transform: none; transition-delay: 0ms;   }
+[data-reveal-stagger].is-visible > *:nth-child(2)  { opacity: 1; transform: none; transition-delay: 80ms;  }
+[data-reveal-stagger].is-visible > *:nth-child(3)  { opacity: 1; transform: none; transition-delay: 160ms; }
+[data-reveal-stagger].is-visible > *:nth-child(4)  { opacity: 1; transform: none; transition-delay: 240ms; }
+[data-reveal-stagger].is-visible > *:nth-child(5)  { opacity: 1; transform: none; transition-delay: 320ms; }
+[data-reveal-stagger].is-visible > *:nth-child(6)  { opacity: 1; transform: none; transition-delay: 400ms; }
+[data-reveal-stagger].is-visible > *:nth-child(n+7){ opacity: 1; transform: none; transition-delay: 480ms; }
+
+/* ─── Utility classes ────────────────────────────────────────── */
+.section-padding {
+  @apply py-16 lg:py-24;
+}
+
+.container-wide {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-narrow {
+  @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* ─── Hero gradient overlay ──────────────────────────────────── */
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    rgba(43, 36, 91, 0.92) 0%,
+    rgba(43, 36, 91, 0.75) 50%,
+    rgba(250, 56, 46, 0.3) 100%
+  );
+}
+
+/* ─── Card hover ─────────────────────────────────────────────── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(43, 36, 91, 0.12);
+}
+
+/* ─── Focus ring ─────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ─── Print ──────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+}
