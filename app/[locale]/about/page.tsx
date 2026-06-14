@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildOrganizationSchema, buildBreadcrumbSchema } from '@/lib/seo'
+import { BASE_URL, buildMetadata, buildOrganizationSchema, buildBreadcrumbSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import AboutContent from '@/components/about/AboutContent'
@@ -30,8 +30,8 @@ export default async function AboutPage({ params }: AboutPageProps) {
   const schemas = [
     buildOrganizationSchema(locale),
     buildBreadcrumbSchema([
-      { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-      { name: locale === 'ar' ? 'من نحن' : 'About Us', url: `https://werise.org.jo/${locale}/about` },
+      { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+      { name: locale === 'ar' ? 'من نحن' : 'About Us', url: `${BASE_URL}/${locale}/about` },
     ]),
   ]
 

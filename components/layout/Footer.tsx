@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import type { Locale } from '@/types'
 import { siteData } from '@/data/site'
 import { footerLinks } from '@/data/navigation'
@@ -30,9 +31,11 @@ export default function Footer({ locale }: FooterProps) {
           <div className="lg:col-span-2">
             <Link href={`/${locale}`} className="inline-flex mb-4">
               <div className="bg-white/95 rounded-xl px-4 py-2 shadow-sm">
-                <img
+                <Image
                   src={locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg'}
                   alt={siteData.name[locale]}
+                  width={150}
+                  height={40}
                   className="h-10 w-auto"
                 />
               </div>
@@ -91,7 +94,7 @@ export default function Footer({ locale }: FooterProps) {
                 {section.items.map((item) => (
                   <li key={item.href}>
                     <Link
-                      href={`/${locale}${item.href}`}
+                      href={item.href === '/sitemap.xml' ? item.href : `/${locale}${item.href}`}
                       className="text-sm text-white/65 hover:text-secondary-400 transition-colors"
                     >
                       {item.label[locale]}
@@ -144,7 +147,7 @@ export default function Footer({ locale }: FooterProps) {
               © {year} {siteData.name[locale]}. {locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
             </p>
             <div className="flex items-center gap-4">
-              <Link href={`/${locale}/sitemap.xml`} className="hover:text-white/80 transition-colors">
+              <Link href="/sitemap.xml" className="hover:text-white/80 transition-colors">
                 {locale === 'ar' ? 'خريطة الموقع' : 'Sitemap'}
               </Link>
               <span>·</span>

@@ -178,7 +178,7 @@ export const projectsData: Project[] = [
   },
   {
     id: 'p-6',
-    slug: 'accountability-monitoring-program',
+    slug: 'accountability-monitoring-program-data-journalism',
     title: {
       ar: 'برنامج المتابعة والمساءلة المؤسسية',
       en: 'Institutional Accountability Monitoring Program',
@@ -212,7 +212,7 @@ export const projectsData: Project[] = [
   },
   {
     id: 'p-7',
-    slug: 'accountability-monitoring-program',
+    slug: 'accountability-monitoring-program-policy-briefs',
     title: {
       ar: 'برنامج المتابعة والمساءلة المؤسسية',
       en: 'Institutional Accountability Monitoring Program',
@@ -246,7 +246,7 @@ export const projectsData: Project[] = [
   },
   {
     id: 'p-8',
-    slug: 'accountability-monitoring-program',
+    slug: 'accountability-monitoring-program-civic-oversight',
     title: {
       ar: 'برنامج المتابعة والمساءلة المؤسسية',
       en: 'Institutional Accountability Monitoring Program',
@@ -280,7 +280,7 @@ export const projectsData: Project[] = [
   },
   {
     id: 'p-9',
-    slug: 'accountability-monitoring-program',
+    slug: 'accountability-monitoring-program-transparency-reports',
     title: {
       ar: 'برنامج المتابعة والمساءلة المؤسسية',
       en: 'Institutional Accountability Monitoring Program',
@@ -314,7 +314,7 @@ export const projectsData: Project[] = [
   },
   {
     id: 'p-10',
-    slug: 'accountability-monitoring-program',
+    slug: 'accountability-monitoring-program-public-services',
     title: {
       ar: 'برنامج المتابعة والمساءلة المؤسسية',
       en: 'Institutional Accountability Monitoring Program',

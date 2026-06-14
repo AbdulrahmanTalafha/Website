@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight, ChevronLeft, Home } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { BASE_URL } from '@/lib/seo'
 
 const ROUTE_LABELS: Record<string, { ar: string; en: string }> = {
   'programs-projects':     { ar: 'البرامج والمشاريع',       en: 'Programs & Projects' },
@@ -55,12 +56,12 @@ export default function AutoBreadcrumb() {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: isRTL ? 'الرئيسية' : 'Home', item: `https://werise.org.jo/${locale}` },
+      { '@type': 'ListItem', position: 1, name: isRTL ? 'الرئيسية' : 'Home', item: `${BASE_URL}/${locale}` },
       ...items.map((item, i) => ({
         '@type': 'ListItem',
         position: i + 2,
         name: item.label,
-        item: `https://werise.org.jo${item.href}`,
+        item: `${BASE_URL}${item.href}`,
       })),
     ],
   }

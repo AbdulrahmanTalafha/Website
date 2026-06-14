@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildArticleSchema, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
+import JsonLd from '@/components/common/JsonLd'
 import { getProjectBySlug, getNews, getPublications } from '@/lib/api'
 import { projectsData } from '@/data/projects'
 import {
@@ -24,8 +25,9 @@ export async function generateStaticParams() {
   )
 }
 
-export async function generateMetadata({ params }: ProjectDetailProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: ProjectDetailProps): Promise<Metadata> {
   const { locale, slug } = await params as { locale: Locale; slug: string }
+  const { v } = await searchParams
   const project = await getProjectBySlug(locale, slug)
   if (!project) return {}
   return buildMetadata({
@@ -33,6 +35,8 @@ export async function generateMetadata({ params }: ProjectDetailProps): Promise<
     canonicalPath: `/${locale}/programs-projects/${slug}`,
     customTitle: project.title[locale],
     customDescription: project.shortDescription[locale],
+    noIndex: Boolean(v),
+    ogType: 'article',
   })
 }
 
@@ -47,8 +51,8 @@ const chapterBorders = ['border-primary-200', 'border-secondary-200', 'border-pr
 
 export default async function ProjectDetailPage({ params, searchParams }: ProjectDetailProps) {
   const { locale, slug } = await params as { locale: Locale; slug: string }
-  const { v } = await searchParams
-  const variant: 'dark' | 'light' | 'classic' = v === 'light' ? 'light' : v === 'classic' ? 'classic' : 'dark'
+  await searchParams
+  const variant = 'classic' as 'dark' | 'light' | 'classic'
 
   const projectRaw = await getProjectBySlug(locale, slug)
   if (!projectRaw) notFound()
@@ -77,12 +81,28 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
   const darkHref    = basePath
   const lightHref   = `${basePath}?v=light`
   const classicHref = `${basePath}?v=classic`
+  const schemas = [
+    buildBreadcrumbSchema([
+      { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+      { name: isRTL ? 'البرامج والمشاريع' : 'Programs & Projects', url: `${BASE_URL}/${locale}/programs-projects` },
+      { name: project.title[locale], url: `${BASE_URL}/${locale}/programs-projects/${slug}` },
+    ]),
+    buildArticleSchema({
+      title: project.title[locale],
+      description: project.shortDescription[locale],
+      datePublished: project.startDate,
+      image: project.featuredImage,
+      locale,
+    }),
+  ]
 
   /* ─────────────────────────────────────────────
      DARK VARIANT (default)
   ───────────────────────────────────────────── */
   if (variant === 'dark') return (
     <>
+      <JsonLd data={schemas} />
+
       {/* ═══ HERO ═══ */}
       <div className="relative h-[70vh] min-h-[520px] overflow-hidden bg-primary-900">
         <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />
@@ -355,6 +375,8 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
   ───────────────────────────────────────────── */
   if (variant === 'light') return (
     <>
+      <JsonLd data={schemas} />
+
       {/* ═══ HERO ═══ */}
       <div className="relative h-[70vh] min-h-[520px] overflow-hidden">
         <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover" priority sizes="100vw" />
@@ -614,6 +636,8 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
   ───────────────────────────────────────────── */
   return (
     <>
+      <JsonLd data={schemas} />
+
       {/* Hero */}
       <div className="relative h-72 md:h-96 overflow-hidden bg-primary-900">
         <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />

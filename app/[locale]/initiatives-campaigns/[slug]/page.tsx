@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildArticleSchema, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
+import JsonLd from '@/components/common/JsonLd'
 import { getInitiativeBySlug } from '@/lib/api'
 import { initiativesData } from '@/data/initiatives'
 import { projectsData } from '@/data/projects'
@@ -24,8 +25,9 @@ export async function generateStaticParams() {
   )
 }
 
-export async function generateMetadata({ params }: InitiativeDetailProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: InitiativeDetailProps): Promise<Metadata> {
   const { locale, slug } = await params as { locale: Locale; slug: string }
+  const { v } = await searchParams
   const initiative = await getInitiativeBySlug(locale, slug)
   if (!initiative) return {}
   return buildMetadata({
@@ -33,6 +35,8 @@ export async function generateMetadata({ params }: InitiativeDetailProps): Promi
     canonicalPath: `/${locale}/initiatives-campaigns/${slug}`,
     customTitle: initiative.title[locale],
     customDescription: initiative.shortDescription[locale],
+    noIndex: Boolean(v),
+    ogType: 'article',
   })
 }
 
@@ -45,8 +49,8 @@ const CATEGORY = {
 
 export default async function InitiativeDetailPage({ params, searchParams }: InitiativeDetailProps) {
   const { locale, slug } = await params as { locale: Locale; slug: string }
-  const { v } = await searchParams
-  const variant: 'dark' | 'light' | 'classic' = v === 'light' ? 'light' : v === 'classic' ? 'classic' : 'dark'
+  await searchParams
+  const variant = 'classic' as 'dark' | 'light' | 'classic'
 
   const initiative = await getInitiativeBySlug(locale, slug)
   if (!initiative) notFound()
@@ -67,12 +71,28 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
   const darkHref    = basePath
   const lightHref   = `${basePath}?v=light`
   const classicHref = `${basePath}?v=classic`
+  const schemas = [
+    buildBreadcrumbSchema([
+      { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+      { name: isRTL ? 'المبادرات والحملات' : 'Initiatives & Campaigns', url: `${BASE_URL}/${locale}/initiatives-campaigns` },
+      { name: initiative.title[locale], url: `${BASE_URL}/${locale}/initiatives-campaigns/${slug}` },
+    ]),
+    buildArticleSchema({
+      title: initiative.title[locale],
+      description: initiative.shortDescription[locale],
+      datePublished: initiative.startDate,
+      image: initiative.featuredImage,
+      locale,
+    }),
+  ]
 
   /* ─────────────────────────────────────────────
      DARK VARIANT
   ───────────────────────────────────────────── */
   if (variant === 'dark') return (
     <>
+      <JsonLd data={schemas} />
+
       {/* Hero */}
       <div className="relative h-[70vh] min-h-[520px] overflow-hidden bg-primary-900">
         <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />
@@ -243,6 +263,8 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
   ───────────────────────────────────────────── */
   if (variant === 'light') return (
     <>
+      <JsonLd data={schemas} />
+
       {/* Hero */}
       <div className="relative h-[60vh] min-h-[440px] overflow-hidden bg-neutral-100">
         <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-60" priority sizes="100vw" />
@@ -430,6 +452,8 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
   ───────────────────────────────────────────── */
   return (
     <>
+      <JsonLd data={schemas} />
+
       {/* Hero */}
       <div className="relative h-72 md:h-96 overflow-hidden bg-primary-900">
         <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />

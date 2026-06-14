@@ -2,8 +2,10 @@ import type { MetadataRoute } from 'next'
 import { projectsData } from '@/data/projects'
 import { publicationsData } from '@/data/publications'
 import { newsData } from '@/data/media'
+import { initiativesData } from '@/data/initiatives'
+import { teamData } from '@/data/team'
 
-const BASE = 'https://werise.org.jo'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
 const locales = ['ar', 'en']
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -19,7 +21,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/media-center',
     '/partners-supporters',
     '/contact',
-    '/search',
   ]
 
   const staticEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
@@ -43,6 +44,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
+      alternates: {
+        languages: {
+          ar: `${BASE}/ar/programs-projects/${p.slug}`,
+          en: `${BASE}/en/programs-projects/${p.slug}`,
+        },
+      },
     }))
   )
 
@@ -52,6 +59,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
+      alternates: {
+        languages: {
+          ar: `${BASE}/ar/publications-reports/${p.slug}`,
+          en: `${BASE}/en/publications-reports/${p.slug}`,
+        },
+      },
     }))
   )
 
@@ -61,8 +74,51 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(n.date),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
+      alternates: {
+        languages: {
+          ar: `${BASE}/ar/media-center/${n.slug}`,
+          en: `${BASE}/en/media-center/${n.slug}`,
+        },
+      },
     }))
   )
 
-  return [...staticEntries, ...projectEntries, ...publicationEntries, ...newsEntries]
+  const initiativeEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
+    initiativesData.map(i => ({
+      url: `${BASE}/${locale}/initiatives-campaigns/${i.slug}`,
+      lastModified: i.endDate ? new Date(i.endDate) : new Date(i.startDate),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+      alternates: {
+        languages: {
+          ar: `${BASE}/ar/initiatives-campaigns/${i.slug}`,
+          en: `${BASE}/en/initiatives-campaigns/${i.slug}`,
+        },
+      },
+    }))
+  )
+
+  const teamEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
+    teamData.map(member => ({
+      url: `${BASE}/${locale}/team-governance/${member.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.5,
+      alternates: {
+        languages: {
+          ar: `${BASE}/ar/team-governance/${member.slug}`,
+          en: `${BASE}/en/team-governance/${member.slug}`,
+        },
+      },
+    }))
+  )
+
+  return [
+    ...staticEntries,
+    ...projectEntries,
+    ...publicationEntries,
+    ...newsEntries,
+    ...initiativeEntries,
+    ...teamEntries,
+  ]
 }

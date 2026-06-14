@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { Locale } from '@/types'
@@ -61,10 +62,13 @@ export default function Header({ locale }: HeaderProps) {
                 className="flex items-center"
                 aria-label={siteData.name[locale]}
               >
-                <img
+                <Image
                   src={locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg'}
                   alt={siteData.name[locale]}
+                  width={180}
+                  height={48}
                   className="h-10 lg:h-12 w-auto"
+                  priority
                 />
               </Link>
 

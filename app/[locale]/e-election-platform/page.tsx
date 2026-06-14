@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
+import Image from 'next/image'
+import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildServiceSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import Breadcrumbs from '@/components/common/Breadcrumbs'
 import PageHero from '@/components/common/PageHero'
@@ -12,10 +13,14 @@ interface PageProps { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const description = locale === 'ar'
+    ? 'منصة We Rise الرقمية لإدارة انتخابات إلكترونية شفافة وآمنة للمنظمات المدنية والمؤسسات المجتمعية'
+    : 'We Rise digital platform for managing transparent and secure electronic elections for civil society and community institutions'
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/e-election-platform`,
     customTitle: locale === 'ar' ? 'منصة الانتخابات الإلكترونية' : 'E-Election Platform',
+    customDescription: description,
   })
 }
 
@@ -37,17 +42,29 @@ export default async function EElectionPage({ params }: PageProps) {
   const active = elections.filter(e => e.status === 'active')
   const upcoming = elections.filter(e => e.status === 'upcoming')
   const completed = elections.filter(e => e.status === 'completed')
+  const pageTitle = locale === 'ar' ? 'منصة الانتخابات الإلكترونية' : 'E-Election Platform'
+  const pageDescription = locale === 'ar'
+    ? 'منصة We Rise الرقمية لإدارة انتخابات إلكترونية شفافة وآمنة للمنظمات المدنية والمؤسسات المجتمعية'
+    : 'We Rise digital platform for managing transparent and secure electronic elections for civil society and community institutions'
 
   return (
     <>
-      <JsonLd data={buildBreadcrumbSchema([
-        { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-        { name: locale === 'ar' ? 'منصة الانتخابات الإلكترونية' : 'E-Election Platform', url: `https://werise.org.jo/${locale}/e-election-platform` },
-      ])} />
+      <JsonLd data={[
+        buildBreadcrumbSchema([
+          { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: pageTitle, url: `${BASE_URL}/${locale}/e-election-platform` },
+        ]),
+        buildServiceSchema({
+          name: pageTitle,
+          description: pageDescription,
+          url: `${BASE_URL}/${locale}/e-election-platform`,
+          locale,
+        }),
+      ]} />
 
       <PageHero
         locale={locale}
-        title={locale === 'ar' ? 'منصة الانتخابات الإلكترونية' : 'E-Election Platform'}
+        title={pageTitle}
         subtitle={locale === 'ar' ? 'نوفر بنية تحتية رقمية لإجراء انتخابات شفافة وموثوقة للمنظمات المدنية ومؤسسات المجتمع' : 'We provide digital infrastructure for transparent and reliable elections for civil society organizations and community institutions'}
         badge={locale === 'ar' ? 'منصة رقمية' : 'Digital Platform'}
         image="https://picsum.photos/seed/werise-election/1400/700"
@@ -137,8 +154,8 @@ function ElectionCard({ election, locale }: { election: import('@/types').Electi
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {election.image && (
-        <div className="aspect-video overflow-hidden bg-neutral-100">
-          <img src={election.image} alt={election.title[locale]} className="w-full h-full object-cover" />
+        <div className="relative aspect-video overflow-hidden bg-neutral-100">
+          <Image src={election.image} alt={election.title[locale]} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
         </div>
       )}
       <div className="p-5">

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
+import Image from 'next/image'
 import { buildMetadata } from '@/lib/seo'
 import Breadcrumbs from '@/components/common/Breadcrumbs'
 import { searchContent } from '@/lib/api'
@@ -17,6 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     locale,
     canonicalPath: `/${locale}/search`,
     customTitle: locale === 'ar' ? 'البحث' : 'Search',
+    noIndex: true,
   })
 }
 
@@ -111,8 +113,8 @@ export default async function SearchPage({ params, searchParams }: PageProps) {
                         >
                           <div className="flex items-start gap-4">
                             {result.image && (
-                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
-                                <img src={result.image} alt={result.title} className="w-full h-full object-cover" />
+                              <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
+                                <Image src={result.image} alt={result.title} fill className="object-cover" sizes="64px" />
                               </div>
                             )}
                             <div className="flex-1 min-w-0">

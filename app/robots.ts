@@ -1,15 +1,17 @@
 import type { MetadataRoute } from 'next'
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/'],
+        disallow: ['/api/'],
       },
     ],
-    sitemap: 'https://werise.org.jo/sitemap.xml',
-    host: 'https://werise.org.jo',
+    sitemap: `${BASE_URL}/sitemap.xml`,
+    host: BASE_URL,
   }
 }

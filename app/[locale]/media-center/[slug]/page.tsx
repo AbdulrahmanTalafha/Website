@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
+import { BASE_URL, buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getNewsBySlug, getNews } from '@/lib/api'
 import { newsData } from '@/data/media'
@@ -37,8 +37,8 @@ function readingTime(content: string) {
   return Math.max(1, Math.ceil(content.trim().split(/\s+/).length / 200))
 }
 
-function getVariant(v: string | undefined) {
-  const variant = v === 'light' ? 'light' : v === 'classic' ? 'classic' : 'dark'
+function getVariant(_v: string | undefined) {
+  const variant = 'classic'
   const map = {
     dark: {
       variant: 'dark' as const,
@@ -98,21 +98,28 @@ function getVariant(v: string | undefined) {
   return { ...map[variant], variant }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale, slug } = await params as { locale: Locale; slug: string }
+  const { v } = await searchParams
   const item = await getNewsBySlug(locale, slug)
   if (!item) return {}
   const cat = CATEGORY_META[item.category]
+  const baseMetadata = buildMetadata({
+    locale,
+    canonicalPath: `/${locale}/media-center/${slug}`,
+    customTitle: item.title[locale],
+    customDescription: item.excerpt[locale],
+    noIndex: Boolean(v),
+    ogType: 'article',
+  })
+
   return {
-    ...buildMetadata({
-      locale,
-      canonicalPath: `/${locale}/media-center/${slug}`,
-      customTitle: item.title[locale],
-      customDescription: item.excerpt[locale],
-    }),
+    ...baseMetadata,
     openGraph: {
+      ...(baseMetadata.openGraph as Record<string, unknown>),
       title: item.title[locale],
       description: item.excerpt[locale],
+      url: `${BASE_URL}/${locale}/media-center/${slug}`,
       images: [{ url: item.image, width: 800, height: 500, alt: item.title[locale] }],
       type: 'article',
       publishedTime: item.date,
@@ -164,13 +171,13 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
     publisher: {
       '@type': 'Organization',
       name: 'We Rise',
-      logo: { '@type': 'ImageObject', url: 'https://werise.org.jo/logo.png' },
+      logo: { '@type': 'ImageObject', url: `${BASE_URL}/logo-en.svg` },
     },
-    mainEntityOfPage: `https://werise.org.jo/${locale}/media-center/${slug}`,
+    mainEntityOfPage: `${BASE_URL}/${locale}/media-center/${slug}`,
   }
 
   /* share URLs (used client-side via href) */
-  const pageUrl = `https://werise.org.jo/${locale}/media-center/${slug}`
+  const pageUrl = `${BASE_URL}/${locale}/media-center/${slug}`
   const shareTwitter  = `https://twitter.com/intent/tweet?text=${encodeURIComponent(item.title[locale as Locale])}&url=${encodeURIComponent(pageUrl)}`
   const shareFacebook = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`
   const shareWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(item.title[locale as Locale] + '\n' + pageUrl)}`
@@ -178,9 +185,9 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
   return (
     <>
       <JsonLd data={buildBreadcrumbSchema([
-        { name: isRTL ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-        { name: isRTL ? 'المركز الإعلامي' : 'Media Center', url: `https://werise.org.jo/${locale}/media-center` },
-        { name: item.title[locale as Locale], url: `https://werise.org.jo/${locale}/media-center/${slug}` },
+        { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+        { name: isRTL ? 'المركز الإعلامي' : 'Media Center', url: `${BASE_URL}/${locale}/media-center` },
+        { name: item.title[locale as Locale], url: `${BASE_URL}/${locale}/media-center/${slug}` },
       ])} />
       <JsonLd data={articleSchema} />
 

@@ -18,12 +18,18 @@ interface PageProps {
   searchParams: Promise<{ v?: string }>
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const { v } = await searchParams
+  const description = locale === 'ar'
+    ? 'المرصد الرقمي من مركز We Rise لرصد وتحليل خطاب الكراهية والعنف الرقمي وتقديم تقارير وبيانات حول السلامة الرقمية'
+    : 'The We Rise Digital Observatory monitors and analyzes hate speech and digital violence, providing reports and data on digital safety'
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/digital-observatory`,
     customTitle: locale === 'ar' ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence',
+    customDescription: description,
+    noIndex: Boolean(v),
   })
 }
 
@@ -62,8 +68,8 @@ function TrendBar({ cases, hs, dv, max, month, textCls }: { cases: number; hs: n
 
 export default async function DigitalObservatoryPage({ params, searchParams }: PageProps) {
   const { locale } = await params as { locale: Locale }
-  const { v } = await searchParams
-  const variant: 'dark' | 'light' | 'classic' = v === 'light' ? 'light' : v === 'classic' ? 'classic' : 'dark'
+  await searchParams
+  const variant = 'dark' as 'dark' | 'light' | 'classic'
   const { stats, reports } = await getObservatoryData(locale)
 
   const isRTL = locale === 'ar'

@@ -1,7 +1,7 @@
-import type { Locale, PageMeta } from '@/types'
+import type { Locale } from '@/types'
 import { siteData } from '@/data/site'
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
+export const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
 
 interface SeoOptions {
   locale: Locale
@@ -12,18 +12,17 @@ interface SeoOptions {
   ogImage?: string
   canonicalPath: string
   noIndex?: boolean
+  ogType?: 'website' | 'article'
 }
 
 export function buildMetadata(opts: SeoOptions) {
-  const { locale, customTitle, customDescription, ogImage, canonicalPath, noIndex } = opts
+  const { locale, customTitle, customDescription, ogImage, canonicalPath, noIndex, ogType } = opts
 
   const siteName = siteData.name[locale]
-  const title = customTitle ? `${customTitle} | ${siteName}` : siteName
+  const title = customTitle ?? siteName
   const description = customDescription ?? siteData.description[locale]
-  const ogImg = ogImage ?? `${BASE_URL}/og-default.jpg`
+  const ogImg = ogImage ?? `${BASE_URL}/og-default.png`
   const canonical = `${BASE_URL}${canonicalPath}`
-  const altLocale = locale === 'ar' ? 'en' : 'ar'
-  const altPath = canonicalPath.replace(`/${locale}`, `/${altLocale}`)
 
   return {
     title,
@@ -44,7 +43,7 @@ export function buildMetadata(opts: SeoOptions) {
       siteName,
       images: [{ url: ogImg, width: 1200, height: 630, alt: title }],
       locale: locale === 'ar' ? 'ar_JO' : 'en_US',
-      type: 'website',
+      type: ogType ?? 'website',
     },
     twitter: {
       card: 'summary_large_image',
@@ -73,13 +72,72 @@ export function buildBreadcrumbSchema(
   }
 }
 
+export function buildCollectionPageSchema(opts: {
+  name: string
+  description: string
+  url: string
+  locale: Locale
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: opts.name,
+    description: opts.description,
+    url: opts.url,
+    inLanguage: opts.locale === 'ar' ? 'ar' : 'en',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: siteData.name[opts.locale],
+      url: BASE_URL,
+    },
+  }
+}
+
+export function buildContactPageSchema(opts: {
+  name: string
+  description: string
+  url: string
+  locale: Locale
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: opts.name,
+    description: opts.description,
+    url: opts.url,
+    inLanguage: opts.locale === 'ar' ? 'ar' : 'en',
+    about: buildOrganizationSchema(opts.locale),
+  }
+}
+
+export function buildServiceSchema(opts: {
+  name: string
+  description: string
+  url: string
+  locale: Locale
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: opts.name,
+    description: opts.description,
+    url: opts.url,
+    areaServed: 'JO',
+    provider: {
+      '@type': 'Organization',
+      name: siteData.name[opts.locale],
+      url: BASE_URL,
+    },
+  }
+}
+
 export function buildOrganizationSchema(locale: Locale) {
   return {
     '@context': 'https://schema.org',
     '@type': 'NGO',
     name: siteData.name[locale],
     url: BASE_URL,
-    logo: `${BASE_URL}/logo.png`,
+    logo: `${BASE_URL}/logo-en.svg`,
     sameAs: Object.values(siteData.social).filter(Boolean),
     address: {
       '@type': 'PostalAddress',
@@ -130,7 +188,7 @@ export function buildArticleSchema(opts: {
     publisher: {
       '@type': 'Organization',
       name: siteData.name[opts.locale],
-      logo: { '@type': 'ImageObject', url: `${BASE_URL}/logo.png` },
+      logo: { '@type': 'ImageObject', url: `${BASE_URL}/logo-en.svg` },
     },
   }
 }

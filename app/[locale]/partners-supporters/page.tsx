@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
+import Image from 'next/image'
+import { BASE_URL, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import Breadcrumbs from '@/components/common/Breadcrumbs'
 import PageHero from '@/components/common/PageHero'
@@ -11,10 +12,14 @@ interface PageProps { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const description = locale === 'ar'
+    ? 'تعرّف على شركاء وداعمي مركز We Rise المحليين والدوليين في برامج الديمقراطية وحقوق الإنسان والحقوق الرقمية'
+    : 'Meet We Rise Center local and international partners and supporters in democracy, human rights, and digital rights programs'
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/partners-supporters`,
     customTitle: locale === 'ar' ? 'الشركاء والداعمون' : 'Partners & Supporters',
+    customDescription: description,
   })
 }
 
@@ -34,8 +39,8 @@ export default async function PartnersPage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={buildBreadcrumbSchema([
-        { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-        { name: locale === 'ar' ? 'الشركاء والداعمون' : 'Partners & Supporters', url: `https://werise.org.jo/${locale}/partners-supporters` },
+        { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+        { name: locale === 'ar' ? 'الشركاء والداعمون' : 'Partners & Supporters', url: `${BASE_URL}/${locale}/partners-supporters` },
       ])} />
 
       <PageHero
@@ -65,11 +70,13 @@ export default async function PartnersPage({ params }: PageProps) {
                   {items.map(partner => (
                     <div key={partner.id} className="bg-white rounded-2xl p-5 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow group">
                       {partner.logo && (
-                        <div className="w-20 h-16 mb-3 flex items-center justify-center">
-                          <img
+                        <div className="relative w-20 h-16 mb-3">
+                          <Image
                             src={partner.logo}
                             alt={partner.name[locale]}
-                            className="max-w-full max-h-full object-contain grayscale group-hover:grayscale-0 transition-all"
+                            fill
+                            className="object-contain grayscale group-hover:grayscale-0 transition-all"
+                            sizes="80px"
                           />
                         </div>
                       )}

@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPublicationSchema } from '@/lib/seo'
+import JsonLd from '@/components/common/JsonLd'
 import { getPublicationBySlug } from '@/lib/api'
 import { publicationsData } from '@/data/publications'
 import {
@@ -24,8 +25,9 @@ export async function generateStaticParams() {
   )
 }
 
-export async function generateMetadata({ params }: PublicationDetailProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PublicationDetailProps): Promise<Metadata> {
   const { locale, slug } = await params as { locale: Locale; slug: string }
+  const { v } = await searchParams
   const pub = await getPublicationBySlug(locale, slug)
   if (!pub) return {}
   return buildMetadata({
@@ -33,6 +35,7 @@ export async function generateMetadata({ params }: PublicationDetailProps): Prom
     canonicalPath: `/${locale}/publications-reports/${slug}`,
     customTitle: pub.title[locale],
     customDescription: pub.summary[locale],
+    noIndex: Boolean(v),
   })
 }
 
@@ -87,8 +90,8 @@ function RelatedMaterials({ pub, locale, cardCls, textCls }: {
 
 export default async function PublicationDetailPage({ params, searchParams }: PublicationDetailProps) {
   const { locale, slug } = await params as { locale: Locale; slug: string }
-  const { v } = await searchParams
-  const variant: 'dark' | 'light' | 'classic' = v === 'light' ? 'light' : v === 'classic' ? 'classic' : 'dark'
+  await searchParams
+  const variant = 'classic' as 'dark' | 'light' | 'classic'
 
   const pub = await getPublicationBySlug(locale, slug)
   if (!pub) notFound()
@@ -104,12 +107,29 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
   const darkHref    = basePath
   const lightHref   = `${basePath}?v=light`
   const classicHref = `${basePath}?v=classic`
+  const pdfUrl = pub.pdfUrl.startsWith('http') ? pub.pdfUrl : `${BASE_URL}${pub.pdfUrl}`
+  const schemas = [
+    buildBreadcrumbSchema([
+      { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+      { name: isRTL ? 'المنشورات والتقارير' : 'Publications & Reports', url: `${BASE_URL}/${locale}/publications-reports` },
+      { name: pub.title[locale], url: `${BASE_URL}/${locale}/publications-reports/${slug}` },
+    ]),
+    buildPublicationSchema({
+      title: pub.title[locale],
+      description: pub.summary[locale],
+      datePublished: pub.publishDate,
+      pdfUrl,
+      locale,
+    }),
+  ]
 
   /* ─────────────────────────────────────────────
      DARK VARIANT (default)
   ───────────────────────────────────────────── */
   if (variant === 'dark') return (
     <>
+      <JsonLd data={schemas} />
+
       <div className="relative min-h-[60vh] overflow-hidden bg-primary-900 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900" />
         <div className="absolute inset-0 opacity-10">
@@ -232,6 +252,8 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
   ───────────────────────────────────────────── */
   if (variant === 'light') return (
     <>
+      <JsonLd data={schemas} />
+
       {/* Hero — light version of dark */}
       <div className="relative min-h-[55vh] overflow-hidden flex items-end" style={{ background: `linear-gradient(135deg, #f8f9ff 0%, #ffffff 40%, #f9f9ff 100%)` }}>
         <div className="absolute inset-0 opacity-8">
@@ -393,6 +415,8 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
   ───────────────────────────────────────────── */
   return (
     <>
+      <JsonLd data={schemas} />
+
       {/* Full-width hero with cover image background */}
       <div className="relative h-80 md:h-[420px] overflow-hidden bg-primary-900">
         <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover opacity-35" priority sizes="100vw" />

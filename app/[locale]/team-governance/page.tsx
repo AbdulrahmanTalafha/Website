@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildBreadcrumbSchema, buildPersonSchema } from '@/lib/seo'
+import { BASE_URL, buildMetadata, buildBreadcrumbSchema, buildPersonSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import Breadcrumbs from '@/components/common/Breadcrumbs'
 import PageHero from '@/components/common/PageHero'
@@ -43,8 +43,8 @@ export default async function TeamPage({ params }: TeamPageProps) {
     <>
       <JsonLd data={[
         buildBreadcrumbSchema([
-          { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-          { name: locale === 'ar' ? 'الفريق والحوكمة' : 'Team & Governance', url: `https://werise.org.jo/${locale}/team-governance` },
+          { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: locale === 'ar' ? 'الفريق والحوكمة' : 'Team & Governance', url: `${BASE_URL}/${locale}/team-governance` },
         ]),
         ...personSchemas,
       ]} />

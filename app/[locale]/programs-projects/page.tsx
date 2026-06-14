@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import { getProjects } from '@/lib/api'
@@ -13,13 +13,14 @@ interface ProjectsPageProps {
 
 export async function generateMetadata({ params }: ProjectsPageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const description = locale === 'ar'
+    ? 'استعرض جميع برامج ومشاريع مركز We Rise في مجالات المواطنة والديمقراطية والحقوق الرقمية والتماسك الاجتماعي'
+    : 'Explore all We Rise Center programs and projects in citizenship, democracy, digital rights, and social cohesion'
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/programs-projects`,
     customTitle: locale === 'ar' ? 'البرامج والمشاريع' : 'Programs & Projects',
-    customDescription: locale === 'ar'
-      ? 'استعرض جميع برامج ومشاريع مركز We Rise في مجالات المواطنة والديمقراطية والحقوق الرقمية والتماسك الاجتماعي'
-      : 'Explore all We Rise Center programs and projects in citizenship, democracy, digital rights, and social cohesion',
+    customDescription: description,
   })
 }
 
@@ -43,17 +44,29 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
   const topSectors = Object.entries(sectorMap).sort((a,b) => b[1]-a[1]).slice(0,4)
 
   const isRTL = locale === 'ar'
+  const pageTitle = isRTL ? 'البرامج والمشاريع' : 'Programs & Projects'
+  const pageDescription = isRTL
+    ? 'استعرض جميع برامج ومشاريع مركز We Rise في مجالات المواطنة والديمقراطية والحقوق الرقمية والتماسك الاجتماعي'
+    : 'Explore all We Rise Center programs and projects in citizenship, democracy, digital rights, and social cohesion'
 
   return (
     <>
-      <JsonLd data={buildBreadcrumbSchema([
-        { name: isRTL ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-        { name: isRTL ? 'البرامج والمشاريع' : 'Programs & Projects', url: `https://werise.org.jo/${locale}/programs-projects` },
-      ])} />
+      <JsonLd data={[
+        buildBreadcrumbSchema([
+          { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: pageTitle, url: `${BASE_URL}/${locale}/programs-projects` },
+        ]),
+        buildCollectionPageSchema({
+          name: pageTitle,
+          description: pageDescription,
+          url: `${BASE_URL}/${locale}/programs-projects`,
+          locale,
+        }),
+      ]} />
 
       <PageHero
         locale={locale}
-        title={isRTL ? 'البرامج والمشاريع' : 'Programs & Projects'}
+        title={pageTitle}
         subtitle={isRTL
           ? 'مشاريع متنوعة في مجالات المواطنة والديمقراطية والحقوق الرقمية والنوع الاجتماعي والتماسك المجتمعي'
           : 'Diverse projects in citizenship, democracy, digital rights, gender equality, and social cohesion'}

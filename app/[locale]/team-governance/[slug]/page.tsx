@@ -3,7 +3,7 @@ import type { Locale } from '@/types'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { buildMetadata, buildPersonSchema } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPersonSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getTeam } from '@/lib/api'
 import { Mail, Linkedin, ArrowLeft, ArrowRight, Building2, ChevronRight } from 'lucide-react'
@@ -47,12 +47,19 @@ export default async function TeamMemberPage({ params }: Props) {
 
   return (
     <>
-      <JsonLd data={buildPersonSchema({
-        name: member.name[locale],
-        jobTitle: member.position[locale],
-        email: member.email,
-        image: member.photo,
-      })} />
+      <JsonLd data={[
+        buildBreadcrumbSchema([
+          { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: isRTL ? 'الفريق والحوكمة' : 'Team & Governance', url: `${BASE_URL}/${locale}/team-governance` },
+          { name: member.name[locale], url: `${BASE_URL}/${locale}/team-governance/${slug}` },
+        ]),
+        buildPersonSchema({
+          name: member.name[locale],
+          jobTitle: member.position[locale],
+          email: member.email,
+          image: member.photo,
+        }),
+      ]} />
 
       {/* Breadcrumb */}
       <div className="bg-neutral-50 border-b border-neutral-100">

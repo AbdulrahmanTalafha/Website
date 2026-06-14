@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildContactPageSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import Breadcrumbs from '@/components/common/Breadcrumbs'
 import PageHero from '@/components/common/PageHero'
@@ -11,10 +11,14 @@ interface PageProps { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params
+  const description = locale === 'ar'
+    ? 'تواصل مع مركز We Rise للاستفسارات والشراكات والدعم في مجالات المواطنة والديمقراطية والحقوق الرقمية'
+    : 'Contact We Rise Center for inquiries, partnerships, and support in citizenship, democracy, and digital rights'
   return buildMetadata({
     locale: locale as Locale,
     canonicalPath: `/${locale}/contact`,
     customTitle: locale === 'ar' ? 'تواصل معنا' : 'Contact Us',
+    customDescription: description,
   })
 }
 
@@ -22,17 +26,29 @@ export default async function ContactPage({ params }: PageProps) {
   const { locale } = await params
   const typedLocale = locale as Locale
   const { email, phone, address, social } = siteData
+  const pageTitle = locale === 'ar' ? 'تواصل معنا' : 'Contact Us'
+  const pageDescription = locale === 'ar'
+    ? 'تواصل مع مركز We Rise للاستفسارات والشراكات والدعم في مجالات المواطنة والديمقراطية والحقوق الرقمية'
+    : 'Contact We Rise Center for inquiries, partnerships, and support in citizenship, democracy, and digital rights'
 
   return (
     <>
-      <JsonLd data={buildBreadcrumbSchema([
-        { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-        { name: locale === 'ar' ? 'تواصل معنا' : 'Contact Us', url: `https://werise.org.jo/${locale}/contact` },
-      ])} />
+      <JsonLd data={[
+        buildBreadcrumbSchema([
+          { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: pageTitle, url: `${BASE_URL}/${locale}/contact` },
+        ]),
+        buildContactPageSchema({
+          name: pageTitle,
+          description: pageDescription,
+          url: `${BASE_URL}/${locale}/contact`,
+          locale: typedLocale,
+        }),
+      ]} />
 
       <PageHero
         locale={typedLocale}
-        title={locale === 'ar' ? 'تواصل معنا' : 'Contact Us'}
+        title={pageTitle}
         subtitle={locale === 'ar' ? 'نسعد بالتواصل معكم ونستقبل استفساراتكم ومقترحاتكم' : "We're happy to hear from you — questions, suggestions, or partnership inquiries"}
         badge={locale === 'ar' ? 'تواصل' : 'Get in Touch'}
         image="https://picsum.photos/seed/werise-contact/1400/700"

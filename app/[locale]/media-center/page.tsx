@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
+import JsonLd from '@/components/common/JsonLd'
 import { getNews } from '@/lib/api'
 import {
   Newspaper, Activity, FileText, Tv2, Radio, PlaySquare,
@@ -17,12 +18,18 @@ interface PageProps {
   searchParams: Promise<{ v?: string; tab?: string }>
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const { v, tab } = await searchParams
+  const description = locale === 'ar'
+    ? 'تابع أخبار مركز We Rise وبياناته الصحفية وتغطياته الإعلامية وأنشطته في المواطنة والحقوق الرقمية والديمقراطية'
+    : 'Follow We Rise Center news, press releases, media coverage, and activities in citizenship, digital rights, and democracy'
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/media-center`,
     customTitle: locale === 'ar' ? 'المركز الإعلامي' : 'Media Center',
+    customDescription: description,
+    noIndex: Boolean(v || tab),
   })
 }
 
@@ -189,13 +196,17 @@ function getVariant(variant: 'dark' | 'light' | 'classic') {
 export default async function MediaCenterPage({ params, searchParams }: PageProps) {
   const { locale } = await params as { locale: Locale }
   const { v, tab } = await searchParams
-  const variant: 'dark' | 'light' | 'classic' = v === 'light' ? 'light' : v === 'classic' ? 'classic' : 'dark'
+  const variant = 'classic' as 'dark' | 'light' | 'classic'
   const activeTab: MediaCategory | 'all' = (tab as MediaCategory | 'all') || 'all'
 
   const allNews = await getNews(locale)
   const isRTL = locale === 'ar'
   const V = getVariant(variant)
   const isDark = variant === 'dark'
+  const pageTitle = isRTL ? 'المركز الإعلامي' : 'Media Center'
+  const pageDescription = isRTL
+    ? 'تابع أخبار مركز We Rise وبياناته الصحفية وتغطياته الإعلامية وأنشطته في المواطنة والحقوق الرقمية والديمقراطية'
+    : 'Follow We Rise Center news, press releases, media coverage, and activities in citizenship, digital rights, and democracy'
 
   const basePath    = `/${locale}/media-center`
   const darkHref    = basePath
@@ -217,6 +228,19 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
 
   return (
     <>
+      <JsonLd data={[
+        buildBreadcrumbSchema([
+          { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: pageTitle, url: `${BASE_URL}/${locale}/media-center` },
+        ]),
+        buildCollectionPageSchema({
+          name: pageTitle,
+          description: pageDescription,
+          url: `${BASE_URL}/${locale}/media-center`,
+          locale,
+        }),
+      ]} />
+
       {/* ─── HERO ─── */}
       <div className={`relative min-h-[50vh] overflow-hidden flex items-end ${V.heroBg}`}>
         <Image src={heroImage} alt="" fill className={`object-cover ${V.heroImg}`} sizes="100vw" priority />

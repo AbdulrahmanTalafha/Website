@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Locale } from '@/types';
@@ -185,8 +186,8 @@ function MobileCard({ item, isRTL }: { item: CarouselItem; isRTL: boolean }) {
       className="group relative block w-full h-full overflow-hidden"
       style={{ borderRadius: '16px' }}
     >
-      <img src={item.image} alt={item.title} loading="eager" decoding="async"
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      <Image src={item.image} alt={item.title} fill priority sizes="100vw"
+        className="object-cover transition-transform duration-700 group-hover:scale-105" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
       <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} z-10`}>
         <span className="bg-secondary-500 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow inline-block">
@@ -337,8 +338,8 @@ function DesktopCard({ item, isCenter, isRTL }: { item: CarouselItem; isCenter: 
       className="group relative block w-full overflow-hidden"
       style={{ height: '270px', borderRadius: '16px', boxShadow: isCenter ? '0 25px 50px -12px rgba(0,0,0,0.4)' : 'none' }}
     >
-      <img src={item.image} alt={item.title} loading="lazy" decoding="async"
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      <Image src={item.image} alt={item.title} fill sizes="(max-width: 1024px) 100vw, 33vw"
+        className="object-cover transition-transform duration-700 group-hover:scale-105" />
       <div className="absolute inset-0" style={{
         background: isCenter
           ? 'linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.2) 55%,transparent 100%)'

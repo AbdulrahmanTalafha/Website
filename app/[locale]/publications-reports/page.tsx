@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import { getPublications } from '@/lib/api'
@@ -10,16 +10,24 @@ interface PageProps { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const description = locale === 'ar'
+    ? 'أبحاث وتقارير ودراسات وأوراق سياسات صادرة عن مركز We Rise في الديمقراطية والحقوق الرقمية وخطاب الكراهية'
+    : 'Research, reports, studies, and policy papers from We Rise Center on democracy, digital rights, and hate speech'
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/publications-reports`,
     customTitle: locale === 'ar' ? 'المنشورات والتقارير' : 'Publications & Reports',
+    customDescription: description,
   })
 }
 
 export default async function PublicationsPage({ params }: PageProps) {
   const { locale } = await params as { locale: Locale }
   const publications = await getPublications(locale)
+  const pageTitle = locale === 'ar' ? 'المنشورات والتقارير' : 'Publications & Reports'
+  const pageDescription = locale === 'ar'
+    ? 'أبحاث وتقارير ودراسات وأوراق سياسات صادرة عن مركز We Rise في الديمقراطية والحقوق الرقمية وخطاب الكراهية'
+    : 'Research, reports, studies, and policy papers from We Rise Center on democracy, digital rights, and hate speech'
 
   const types = ['report', 'study', 'policy-paper', 'guide', 'brief']
   const typeLabels: Record<string, Record<string, string>> = {
@@ -36,14 +44,22 @@ export default async function PublicationsPage({ params }: PageProps) {
 
   return (
     <>
-      <JsonLd data={buildBreadcrumbSchema([
-        { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `https://werise.org.jo/${locale}` },
-        { name: locale === 'ar' ? 'المنشورات والتقارير' : 'Publications & Reports', url: `https://werise.org.jo/${locale}/publications-reports` },
-      ])} />
+      <JsonLd data={[
+        buildBreadcrumbSchema([
+          { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+          { name: pageTitle, url: `${BASE_URL}/${locale}/publications-reports` },
+        ]),
+        buildCollectionPageSchema({
+          name: pageTitle,
+          description: pageDescription,
+          url: `${BASE_URL}/${locale}/publications-reports`,
+          locale,
+        }),
+      ]} />
 
       <PageHero
         locale={locale}
-        title={locale === 'ar' ? 'المنشورات والتقارير' : 'Publications & Reports'}
+        title={pageTitle}
         subtitle={locale === 'ar'
           ? 'أبحاث وتقارير ودراسات وأوراق سياسات في مجالات الديمقراطية والحقوق الرقمية وخطاب الكراهية'
           : 'Research, reports, studies and policy papers on democracy, digital rights, and hate speech'}
