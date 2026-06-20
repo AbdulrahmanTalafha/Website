@@ -1,5 +1,6 @@
 import type { StatItem, HeroData } from '@/types'
 
+/** Intentional static fallback when CMS/API is unavailable — used by Hero and HomeStats. */
 export const heroData: HeroData = {
   title: {
     ar: 'نبني مجتمعات واعية ومنتِجة',

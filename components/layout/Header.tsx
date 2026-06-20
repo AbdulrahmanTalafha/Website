@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 import type { Locale } from '@/types'
 import { navigationItems } from '@/data/navigation'
 import { siteData } from '@/data/site'
+import type { ResolvedSiteSettings } from '@/lib/siteSettings'
+import { isExternalAsset } from '@/lib/siteSettings'
 import LanguageSwitcher from './LanguageSwitcher'
 import MobileNav from './MobileNav'
 import { cn } from '@/lib/utils'
@@ -13,22 +15,39 @@ import { Search, Menu, X, Facebook, Twitter, Instagram, Linkedin, Youtube, Arrow
 
 interface HeaderProps {
   locale: Locale
+  logoSrc?: string
+  logoAlt?: string
+  social?: ResolvedSiteSettings['social']
 }
 
-const socialLinks = [
-  { icon: Facebook, href: 'https://facebook.com/werise.jo', label: 'Facebook' },
-  { icon: Twitter, href: 'https://twitter.com/werise_jo', label: 'Twitter' },
-  { icon: Instagram, href: 'https://instagram.com/werise.jo', label: 'Instagram' },
-  { icon: Linkedin, href: 'https://linkedin.com/company/werise-jo', label: 'LinkedIn' },
-  { icon: Youtube, href: 'https://youtube.com/@werise-jo', label: 'YouTube' },
+const defaultSocialLinks = [
+  { key: 'facebook', icon: Facebook, href: 'https://facebook.com/werise.jo', label: 'Facebook' },
+  { key: 'x', icon: Twitter, href: 'https://twitter.com/werise_jo', label: 'Twitter' },
+  { key: 'instagram', icon: Instagram, href: 'https://instagram.com/werise.jo', label: 'Instagram' },
+  { key: 'linkedin', icon: Linkedin, href: 'https://linkedin.com/company/werise-jo', label: 'LinkedIn' },
+  { key: 'youtube', icon: Youtube, href: 'https://youtube.com/@werise-jo', label: 'YouTube' },
 ]
 
-export default function Header({ locale }: HeaderProps) {
+export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const pathname = usePathname()
   const isRTL = locale === 'ar'
   const Arrow = isRTL ? ArrowLeft : ArrowRight
+
+  const resolvedLogo = logoSrc ?? (locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg')
+  const resolvedLogoAlt = logoAlt ?? siteData.name[locale]
+  const logoExternal = isExternalAsset(resolvedLogo)
+
+  const socialLinks = social
+    ? [
+        { key: 'facebook', icon: Facebook, href: social.facebook, label: 'Facebook' },
+        { key: 'x', icon: Twitter, href: social.x, label: 'Twitter' },
+        { key: 'instagram', icon: Instagram, href: social.instagram, label: 'Instagram' },
+        { key: 'linkedin', icon: Linkedin, href: social.linkedin, label: 'LinkedIn' },
+        { key: 'youtube', icon: Youtube, href: social.youtube, label: 'YouTube' },
+      ].filter((item) => item.href)
+    : defaultSocialLinks
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
@@ -60,15 +79,16 @@ export default function Header({ locale }: HeaderProps) {
               <Link
                 href={`/${locale}`}
                 className="flex items-center"
-                aria-label={siteData.name[locale]}
+                aria-label={resolvedLogoAlt}
               >
                 <Image
-                  src={locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg'}
-                  alt={siteData.name[locale]}
+                  src={resolvedLogo}
+                  alt={resolvedLogoAlt}
                   width={180}
                   height={48}
                   className="h-10 lg:h-12 w-auto"
                   priority
+                  unoptimized={logoExternal}
                 />
               </Link>
 

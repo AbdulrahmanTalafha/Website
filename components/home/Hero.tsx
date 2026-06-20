@@ -1,17 +1,23 @@
 import Link from 'next/link'
 import type { Locale } from '@/types'
 import { heroData } from '@/data/home'
-import { getHomeData, getHeroSection } from '@/lib/cms'
+import type { CmsHomeData } from '@/lib/cms'
+import { getHeroSection } from '@/lib/cms'
 import { cmsAssetUrl } from '@/lib/cmsUrl'
 import { cmsButton, cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { ArrowRight, ArrowLeft, ChevronDown } from 'lucide-react'
 
 interface HeroProps {
   locale: Locale
+  /** Pre-fetched home CMS payload — avoids duplicate API calls when provided by the page. */
+  cmsData?: CmsHomeData | null
 }
 
-export default async function Hero({ locale }: HeroProps) {
-  const cmsData = await getHomeData(locale)
+/**
+ * Hero is mandatory on the Home page — always renders.
+ * Optional sections use cmsSectionVisible(); Hero has no CMS visibility toggle.
+ */
+export default async function Hero({ locale, cmsData = null }: HeroProps) {
   const connected = cmsConnected(cmsData)
   const cmsHero = getHeroSection(cmsData)
 

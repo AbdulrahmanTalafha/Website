@@ -3,24 +3,36 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Locale } from '@/types'
-import { siteData } from '@/data/site'
+import type { ResolvedSiteSettings } from '@/lib/siteSettings'
+import { isExternalAsset } from '@/lib/siteSettings'
 import { footerLinks } from '@/data/navigation'
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, Mail, Phone, MapPin } from 'lucide-react'
 
 interface FooterProps {
   locale: Locale
+  site?: ResolvedSiteSettings
 }
 
 const socialIcons = {
   facebook: Facebook,
   twitter: Twitter,
+  x: Twitter,
   instagram: Instagram,
   linkedin: Linkedin,
   youtube: Youtube,
 }
 
-export default function Footer({ locale }: FooterProps) {
+export default function Footer({ locale, site }: FooterProps) {
   const year = new Date().getFullYear()
+  const name = site?.name ?? (locale === 'ar' ? 'مركز We Rise للمواطنة والتنمية' : 'We Rise Center for Citizenship & Development')
+  const description = site?.description ?? ''
+  const logoSrc = site?.branding.logoSrc ?? (locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg')
+  const logoAlt = site?.branding.logoAlt ?? name
+  const logoExternal = isExternalAsset(logoSrc)
+  const email = site?.contact.email ?? ''
+  const phone = site?.contact.phone ?? ''
+  const address = site?.contact.address ?? ''
+  const social = site?.social ?? {}
 
   return (
     <footer className="bg-primary-500 text-white">
@@ -32,39 +44,40 @@ export default function Footer({ locale }: FooterProps) {
             <Link href={`/${locale}`} className="inline-flex mb-4">
               <div className="bg-white/95 rounded-xl px-4 py-2 shadow-sm">
                 <Image
-                  src={locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg'}
-                  alt={siteData.name[locale]}
+                  src={logoSrc}
+                  alt={logoAlt}
                   width={150}
                   height={40}
                   className="h-10 w-auto"
+                  unoptimized={logoExternal}
                 />
               </div>
             </Link>
             <p className="text-white/70 text-sm leading-relaxed mb-5 max-w-xs">
-              {siteData.description[locale]}
+              {description}
             </p>
             {/* Contact info */}
             <div className="space-y-2 text-sm text-white/70">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-secondary-400 shrink-0" />
-                <span>{siteData.address[locale]}</span>
+                <span>{address}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-secondary-400 shrink-0" />
-                <a href={`mailto:${siteData.email}`} className="hover:text-white transition-colors">
-                  {siteData.email}
+                <a href={`mailto:${email}`} className="hover:text-white transition-colors">
+                  {email}
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-secondary-400 shrink-0" />
-                <a href={`tel:${siteData.phone}`} className="hover:text-white transition-colors" dir="ltr">
-                  {siteData.phone}
+                <a href={`tel:${phone}`} className="hover:text-white transition-colors" dir="ltr">
+                  {phone}
                 </a>
               </div>
             </div>
             {/* Social icons */}
             <div className="flex items-center gap-3 mt-6">
-              {Object.entries(siteData.social).map(([key, url]) => {
+              {Object.entries(social).map(([key, url]) => {
                 if (!url) return null
                 const Icon = socialIcons[key as keyof typeof socialIcons]
                 if (!Icon) return null
@@ -144,7 +157,7 @@ export default function Footer({ locale }: FooterProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/50">
             <p>
-              © {year} {siteData.name[locale]}. {locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+              © {year} {name}. {locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
             </p>
             <div className="flex items-center gap-4">
               <Link href="/sitemap.xml" className="hover:text-white/80 transition-colors">

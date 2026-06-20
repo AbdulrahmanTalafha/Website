@@ -15,6 +15,8 @@ interface SeoOptions {
   ogType?: 'website' | 'article'
   /** Use full title as-is (skip layout title template). Best for homepage meta title. */
   absoluteTitle?: boolean
+  /** Override Open Graph site name (e.g. from CMS general settings). */
+  siteName?: string
 }
 
 export function buildMetadata(opts: SeoOptions) {
@@ -27,9 +29,10 @@ export function buildMetadata(opts: SeoOptions) {
     noIndex,
     ogType,
     absoluteTitle,
+    siteName: siteNameOverride,
   } = opts
 
-  const siteName = siteData.name[locale]
+  const siteName = siteNameOverride ?? siteData.name[locale]
   const title = customTitle ?? siteName
   const description = customDescription ?? siteData.description[locale]
   const ogImg = ogImage ?? `${BASE_URL}/og-default.png`

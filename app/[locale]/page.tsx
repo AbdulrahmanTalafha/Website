@@ -16,9 +16,10 @@ import NewsTicker from '@/components/home/NewsTicker'
 import { partnersData } from '@/data/partners'
 import { ArrowRight, ArrowLeft, Vote } from 'lucide-react'
 import { getFocusAreaIcon } from '@/lib/focusAreaIcons'
-import { getHomeData } from '@/lib/cms'
+import { getHomeData, getSettings } from '@/lib/cms'
 import { cmsButton, cmsConnected, cmsRichHtml, cmsSectionVisible, cmsText } from '@/lib/cmsHomeContent'
 import { resolveHomeSeo } from '@/lib/homeSeo'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import type { CmsPublicationRecord, CmsProjectRecord, CmsInitiativeRecord, CmsNewsRecord } from '@/lib/cms'
 import type { Publication, NewsItem } from '@/types'
 
@@ -32,15 +33,19 @@ export const revalidate = 60
 export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
   const cms = await getHomeData(locale)
-  const seo = resolveHomeSeo(cms, locale)
+  const settings = await getSettings(locale)
+  const site = resolveSiteSettings(settings, locale)
+  const seo = resolveHomeSeo(cms, locale, site)
 
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}`,
     customTitle: seo.title,
     customDescription: seo.description,
+    ogImage: seo.ogImage,
     noIndex: seo.noIndex,
     absoluteTitle: true,
+    siteName: site.name,
   })
 }
 
@@ -475,7 +480,7 @@ export default async function HomePage({ params }: HomePageProps) {
       <JsonLd data={[orgSchema, webSchema]} />
 
       {/* Hero */}
-      <Hero locale={locale} />
+      <Hero locale={locale} cmsData={cmsData} />
 
       {/* Reports Ticker */}
       {cmsSectionVisible(connected, cms, 'news_ticker') && (

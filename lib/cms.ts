@@ -3,6 +3,8 @@
  * Falls back to static data when the CMS is unreachable.
  */
 
+import { cache } from 'react'
+
 const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? 'http://localhost:8000'
 
 // ─────────────────────────────────────────────
@@ -178,6 +180,47 @@ export interface CmsHomeData {
 }
 
 // ─────────────────────────────────────────────
+// General settings
+// ─────────────────────────────────────────────
+
+export interface CmsSettingsData {
+  site: {
+    name: string | null
+    description: string | null
+    url: string | null
+  }
+  branding: {
+    main_logo: string | null
+    main_logo_alt: string | null
+    favicon: string | null
+    apple_touch_icon: string | null
+    default_og_image: string | null
+  }
+  contact: {
+    email: string | null
+    phone: string | null
+    address: string | null
+  }
+  social: {
+    facebook: string | null
+    x: string | null
+    instagram: string | null
+    linkedin: string | null
+    youtube: string | null
+  }
+  seo: {
+    default_title: string | null
+    default_description: string | null
+    default_image: string | null
+  }
+  analytics: {
+    google_analytics_id: string | null
+    google_tag_manager_id: string | null
+    google_site_verification: string | null
+  }
+}
+
+// ─────────────────────────────────────────────
 // Fetch helpers
 // ─────────────────────────────────────────────
 
@@ -196,9 +239,13 @@ async function fetchCms<T>(path: string): Promise<T | null> {
   }
 }
 
-export async function getHomeData(locale: string): Promise<CmsHomeData | null> {
+export const getHomeData = cache(async (locale: string): Promise<CmsHomeData | null> => {
   return fetchCms<CmsHomeData>(`/api/${locale}/home`)
-}
+})
+
+export const getSettings = cache(async (locale: string): Promise<CmsSettingsData | null> => {
+  return fetchCms<CmsSettingsData>(`/api/${locale}/settings`)
+})
 
 // ─────────────────────────────────────────────
 // Section accessors

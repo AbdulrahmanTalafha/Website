@@ -4,11 +4,28 @@ import { publicationsData } from '@/data/publications'
 import { newsData } from '@/data/media'
 import { initiativesData } from '@/data/initiatives'
 import { teamData } from '@/data/team'
+import { getHomeData } from '@/lib/cms'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
-const locales = ['ar', 'en']
+const locales = ['ar', 'en'] as const
 
-export default function sitemap(): MetadataRoute.Sitemap {
+function isHomeIndexed(
+  locale: string,
+  homeByLocale: Record<string, Awaited<ReturnType<typeof getHomeData>>>,
+): boolean {
+  const home = homeByLocale[locale]
+  // CMS unavailable — keep legacy static sitemap behavior (include home).
+  if (!home?.page) return true
+  return home.page.is_indexed
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [homeEn, homeAr] = await Promise.all([
+    getHomeData('en'),
+    getHomeData('ar'),
+  ])
+  const homeByLocale = { en: homeEn, ar: homeAr }
+
   const staticPages = [
     '',
     '/about',
@@ -23,19 +40,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/contact',
   ]
 
-  const staticEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
-    staticPages.map(path => ({
-      url: `${BASE}/${locale}${path}`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: path === '' ? 1.0 : 0.8,
-      alternates: {
-        languages: {
-          ar: `${BASE}/ar${path}`,
-          en: `${BASE}/en${path}`,
+  const staticEntries: MetadataRoute.Sitemap = locales.flatMap((locale) =>
+    staticPages
+      .filter((path) => path !== '' || isHomeIndexed(locale, homeByLocale))
+      .map((path) => ({
+        url: `${BASE}/${locale}${path}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: path === '' ? 1.0 : 0.8,
+        alternates: {
+          languages: {
+            ar: `${BASE}/ar${path}`,
+            en: `${BASE}/en${path}`,
+          },
         },
-      },
-    }))
+      })),
   )
 
   const projectEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
