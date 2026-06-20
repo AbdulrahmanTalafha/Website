@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Fragment, type ReactNode } from 'react'
 import type { Locale } from '@/types'
 import { buildMetadata, buildOrganizationSchema, buildWebsiteSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
@@ -19,6 +20,7 @@ import { getFocusAreaIcon } from '@/lib/focusAreaIcons'
 import { getHomeData, getSettings } from '@/lib/cms'
 import { cmsButton, cmsConnected, cmsRichHtml, cmsSectionVisible, cmsText } from '@/lib/cmsHomeContent'
 import { resolveHomeSeo } from '@/lib/homeSeo'
+import { resolveHomeSectionOrder } from '@/lib/homeSectionOrder'
 import { resolveSiteSettings } from '@/lib/siteSettings'
 import type { CmsPublicationRecord, CmsProjectRecord, CmsInitiativeRecord, CmsNewsRecord } from '@/lib/cms'
 import type { Publication, NewsItem } from '@/types'
@@ -474,26 +476,19 @@ export default async function HomePage({ params }: HomePageProps) {
 
   const orgSchema = buildOrganizationSchema(locale)
   const webSchema = buildWebsiteSchema(locale)
+  const sectionOrder = resolveHomeSectionOrder(cmsData, connected)
 
-  return (
-    <>
-      <JsonLd data={[orgSchema, webSchema]} />
-
-      {/* Hero */}
-      <Hero locale={locale} cmsData={cmsData} />
-
-      {/* Reports Ticker */}
-      {cmsSectionVisible(connected, cms, 'news_ticker') && (
+  const sectionBlocks: Record<string, ReactNode> = {
+    news_ticker: cmsSectionVisible(connected, cms, 'news_ticker') ? (
       <NewsTicker
         locale={locale}
         items={tickerItems}
         label={tickerLabel}
         href={tickerHref}
       />
-      )}
+    ) : null,
 
-      {/* About teaser */}
-      {showAboutSection && (
+    about_intro: showAboutSection ? (
       <section className="section-padding bg-white">
         <div className="container-wide">
           <div className="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
@@ -566,10 +561,9 @@ export default async function HomePage({ params }: HomePageProps) {
           </div>
         </div>
       </section>
-      )}
+    ) : null,
 
-      {/* Publications & Reports carousel */}
-      {cmsSectionVisible(connected, cms, 'publications_carousel') && (
+    publications_carousel: cmsSectionVisible(connected, cms, 'publications_carousel') ? (
       <ContentCarousel
         locale={loc}
         items={publicationItems}
@@ -577,10 +571,9 @@ export default async function HomePage({ params }: HomePageProps) {
         viewAllHref={pubCarouselViewAll?.url}
         viewAllLabel={pubCarouselViewAll?.label}
       />
-      )}
+    ) : null,
 
-      {/* Stats */}
-      {cmsSectionVisible(connected, cms, 'home_stats') && (
+    home_stats: cmsSectionVisible(connected, cms, 'home_stats') ? (
       <HomeStats
         locale={locale}
         title={homeStatsTitle}
@@ -588,10 +581,9 @@ export default async function HomePage({ params }: HomePageProps) {
         stats={cms?.home_stats?.stats}
         cmsConnected={connected}
       />
-      )}
+    ) : null,
 
-      {/* Projects & Programs carousel */}
-      {cmsSectionVisible(connected, cms, 'projects_carousel') && (
+    projects_carousel: cmsSectionVisible(connected, cms, 'projects_carousel') ? (
       <ContentCarousel
         locale={loc}
         items={projectItems}
@@ -599,10 +591,9 @@ export default async function HomePage({ params }: HomePageProps) {
         viewAllHref={projCarouselViewAll?.url}
         viewAllLabel={projCarouselViewAll?.label}
       />
-      )}
+    ) : null,
 
-      {/* Observatory Preview */}
-      {cmsSectionVisible(connected, cms, 'observatory_preview') && (
+    observatory_preview: cmsSectionVisible(connected, cms, 'observatory_preview') ? (
       <ObservatoryPreview
         locale={locale}
         stats={observatory.stats}
@@ -613,10 +604,9 @@ export default async function HomePage({ params }: HomePageProps) {
         secondaryButton={observatoryBtn2}
         cmsConnected={connected}
       />
-      )}
+    ) : null,
 
-      {/* Initiatives & Campaigns carousel */}
-      {cmsSectionVisible(connected, cms, 'initiatives_carousel') && (
+    initiatives_carousel: cmsSectionVisible(connected, cms, 'initiatives_carousel') ? (
       <ContentCarousel
         locale={loc}
         items={initiativeItems}
@@ -624,10 +614,9 @@ export default async function HomePage({ params }: HomePageProps) {
         viewAllHref={initCarouselViewAll?.url}
         viewAllLabel={initCarouselViewAll?.label}
       />
-      )}
+    ) : null,
 
-      {/* Latest Publications */}
-      {cmsSectionVisible(connected, cms, 'latest_publications') && (
+    latest_publications: cmsSectionVisible(connected, cms, 'latest_publications') ? (
       <LatestPublications
         locale={locale}
         publications={latestPublications}
@@ -635,12 +624,10 @@ export default async function HomePage({ params }: HomePageProps) {
         viewAllLabel={latestPubViewAll?.label}
         viewAllHref={latestPubViewAll?.url}
       />
-      )}
+    ) : null,
 
-      {/* E-Election CTA */}
-      {showElectionSection && (
+    e_election_cta: showElectionSection ? (
       <section className="section-padding bg-primary-500 relative overflow-hidden">
-        {/* Background pattern */}
         <div className="absolute inset-0" aria-hidden="true">
           <div className="absolute top-0 end-0 w-[480px] h-[480px] rounded-full bg-white/5 -translate-y-1/3 translate-x-1/4" />
           <div className="absolute bottom-0 start-0 w-[320px] h-[320px] rounded-full bg-white/5 translate-y-1/3 -translate-x-1/4" />
@@ -649,7 +636,6 @@ export default async function HomePage({ params }: HomePageProps) {
 
         <div className="container-wide relative z-10">
           <div className="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
-            {/* Left / Start: text */}
             <div data-reveal="up">
               {electionBadge && (
               <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-xs font-bold px-4 py-1.5 rounded-full mb-6 backdrop-blur-sm">
@@ -683,7 +669,6 @@ export default async function HomePage({ params }: HomePageProps) {
               )}
             </div>
 
-            {/* Right / End: visual stats */}
             <div className="mt-12 lg:mt-0 grid grid-cols-2 gap-4" data-reveal-stagger>
               {[
                 { value: '+٢٠٠', valueEn: '200+', label: locale === 'ar' ? 'انتخاب منجز' : 'Elections Completed' },
@@ -702,10 +687,9 @@ export default async function HomePage({ params }: HomePageProps) {
           </div>
         </div>
       </section>
-      )}
+    ) : null,
 
-      {/* Latest News */}
-      {cmsSectionVisible(connected, cms, 'latest_news') && (
+    latest_news: cmsSectionVisible(connected, cms, 'latest_news') ? (
       <LatestNews
         locale={locale}
         news={latestNews}
@@ -713,10 +697,9 @@ export default async function HomePage({ params }: HomePageProps) {
         viewAllLabel={latestNewsViewAll?.label}
         viewAllHref={latestNewsViewAll?.url}
       />
-      )}
+    ) : null,
 
-      {/* Partners & Supporters Carousel */}
-      {cmsSectionVisible(connected, cms, 'partners') && (
+    partners: cmsSectionVisible(connected, cms, 'partners') ? (
       <PartnersCarousel
         locale={locale}
         partners={partnersForCarousel}
@@ -725,10 +708,9 @@ export default async function HomePage({ params }: HomePageProps) {
         viewAllLabel={partnersViewAll?.label}
         viewAllHref={partnersViewAll?.url}
       />
-      )}
+    ) : null,
 
-      {/* Contact CTA */}
-      {showContactSection && (
+    contact_cta: showContactSection ? (
       <section className="py-16 bg-primary-50">
         <div className="container-wide text-center" data-reveal="up">
           {contactTitle && (
@@ -757,7 +739,22 @@ export default async function HomePage({ params }: HomePageProps) {
           )}
         </div>
       </section>
-      )}
+    ) : null,
+  }
+
+  return (
+    <>
+      <JsonLd data={[orgSchema, webSchema]} />
+
+      {/* Hero is mandatory — always first, not part of reorderable sections */}
+      <Hero locale={locale} cmsData={cmsData} />
+
+      {sectionOrder.map((key) => {
+        const block = sectionBlocks[key]
+        if (!block) return null
+
+        return <Fragment key={key}>{block}</Fragment>
+      })}
     </>
   )
 }

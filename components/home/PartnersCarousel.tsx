@@ -31,6 +31,7 @@ export default function PartnersCarousel({
   viewAllHref,
 }: PartnersCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null)
+  const pausedRef = useRef(false)
 
   const displayTitle = title?.trim()
   const displayDescription = description?.trim()
@@ -54,9 +55,11 @@ export default function PartnersCarousel({
 
     let raf: number
     const animate = () => {
-      position += speed
-      if (position >= totalOriginal) {
-        position = 0
+      if (!pausedRef.current) {
+        position += speed
+        if (position >= totalOriginal) {
+          position = 0
+        }
       }
       track.style.transform = `translateX(${locale === 'ar' ? position : -position}px)`
       raf = requestAnimationFrame(animate)
@@ -79,7 +82,7 @@ export default function PartnersCarousel({
             <h2 className="text-primary-500 text-xl md:text-2xl font-black px-3 tracking-tight leading-none">
               {displayTitle}
             </h2>
-            <div className="hidden md:block h-px w-32 bg-gradient-to-r from-neutral-300 to-transparent" />
+            <div className="hidden md:block h-px w-32 bg-gradient-to-r from-neutral-300 to-transparent rtl:bg-gradient-to-l" />
           </div>
           ) : <div />}
           {viewAll && viewAllUrl && (
@@ -100,28 +103,29 @@ export default function PartnersCarousel({
         )}
       </div>
 
-      {/* Carousel track */}
-      <div className="relative">
-        {/* Fade edges */}
-        <div className="absolute inset-y-0 start-0 w-24 z-10 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-        <div className="absolute inset-y-0 end-0 w-24 z-10 bg-gradient-to-l from-white to-transparent pointer-events-none" />
-
-        <div className="overflow-hidden px-2">
-          <div ref={trackRef} className="flex gap-5 will-change-transform" style={{ width: 'max-content' }}>
+      <div
+        className="relative"
+        onMouseEnter={() => { pausedRef.current = true }}
+        onMouseLeave={() => { pausedRef.current = false }}
+      >
+        <div
+          className="overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+        >
+          <div ref={trackRef} className="flex gap-5 will-change-transform py-1" style={{ width: 'max-content' }}>
             {items.map((partner, i) => (
               <a
                 key={`${partner.id}-${i}`}
                 href={partner.website || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 w-44 h-24 bg-white rounded-2xl border border-neutral-100 hover:border-primary-200 hover:shadow-md transition-all duration-300 flex items-center justify-center p-4 group"
+                className="shrink-0 w-44 h-24 bg-white rounded-2xl border border-neutral-100 flex items-center justify-center p-4"
               >
                 <Image
                   src={partner.logo}
                   alt={partner.name[locale]}
                   width={140}
                   height={60}
-                  className="object-contain max-h-14 w-full grayscale group-hover:grayscale-0 transition-all duration-300 opacity-70 group-hover:opacity-100"
+                  className="object-contain max-h-14 w-full"
                 />
               </a>
             ))}
