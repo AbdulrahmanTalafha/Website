@@ -272,7 +272,6 @@ export type PartnerCategory =
   | 'local-partner'
   | 'international-partner'
   | 'donor'
-  | 'network'
 
 export interface Partner {
   id: string

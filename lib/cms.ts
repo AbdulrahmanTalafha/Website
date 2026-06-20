@@ -429,6 +429,59 @@ export const getProjectsPageData = cache(async (locale: string): Promise<CmsProj
 })
 
 // ─────────────────────────────────────────────
+// Partners & Supporters listing page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsPartnersPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsPartnersPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+  use_live_stats?: boolean
+  stats?: Array<{ value: string; suffix?: string; label: string }>
+}
+
+export interface CmsPartnersPageListSection {
+  key: string
+  is_visible: boolean
+  category_order?: string[]
+}
+
+export interface CmsPartnersPageSections {
+  hero?: CmsPartnersPageHeroSection
+  partners_list?: CmsPartnersPageListSection
+}
+
+export interface CmsPartnersPageData {
+  page: CmsPartnersPageMeta
+  sections: CmsPartnersPageSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: Record<string, unknown>
+  }>
+  config?: {
+    categories: Record<string, string>
+  }
+}
+
+export const getPartnersPageData = cache(async (locale: string): Promise<CmsPartnersPageData | null> => {
+  return fetchCms<CmsPartnersPageData>(`/api/${locale}/partners-page`)
+})
+
+// ─────────────────────────────────────────────
 // Section accessors
 // ─────────────────────────────────────────────
 
