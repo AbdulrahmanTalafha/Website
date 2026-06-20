@@ -12,7 +12,8 @@ import { electionsData } from '@/data/elections'
 import { partnersData } from '@/data/partners'
 import { homeData } from '@/data/home'
 import { aboutData } from '@/data/about'
-import { getPartnersData } from '@/lib/cms'
+import { getPartnersData, getProjectsData } from '@/lib/cms'
+import { mapCmsProjectToProject, projectMatchesGovernorate } from '@/lib/mapCmsProject'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
 import type { PartnerCategory } from '@/types'
@@ -44,8 +45,12 @@ export async function getProjects(locale: Locale, filters?: {
   governorate?: string
   donor?: string
 }): Promise<Project[]> {
-  // TODO: Replace with API call: GET /api/projects?locale={locale}&filters
-  let projects = [...projectsData]
+  const cms = await getProjectsData(locale)
+
+  let projects = cms?.records?.length
+    ? cms.records.map(mapCmsProjectToProject)
+    : [...projectsData]
+
   if (filters?.year) {
     projects = projects.filter(p => p.startDate.startsWith(filters.year!))
   }
@@ -53,13 +58,59 @@ export async function getProjects(locale: Locale, filters?: {
     projects = projects.filter(p => p.sectorKey === filters.sector)
   }
   if (filters?.governorate) {
-    projects = projects.filter(p => p.governorates.includes(filters.governorate!))
+    projects = projects.filter((p) => projectMatchesGovernorate(p, filters.governorate!))
   }
+  if (filters?.donor) {
+    projects = projects.filter(p => p.donor[locale] === filters.donor)
+  }
+
   return projects
 }
 
+export async function getProjectsStats(locale: Locale) {
+  const cms = await getProjectsData(locale)
+  if (cms?.stats) return cms.stats
+
+  const projects = await getProjects(locale)
+  const status = { active: 0, completed: 0, upcoming: 0 }
+  const sectors: Record<string, { en: string; ar: string; count: number }> = {
+    'political-empowerment': { en: 'Political Empowerment', ar: 'التمكين السياسي', count: 0 },
+    'economic-empowerment': { en: 'Economic Empowerment', ar: 'التمكين الاقتصادي', count: 0 },
+    'digital-media': { en: 'Digital Media', ar: 'الإعلام الرقمي', count: 0 },
+  }
+  const geographic = { local: 0, national: 0 }
+  let direct = 0
+  let indirect = 0
+
+  for (const p of projects) {
+    if (p.status in status) status[p.status as keyof typeof status]++
+    if (p.sectorKey in sectors) sectors[p.sectorKey].count++
+    if (p.geographicLevel && p.geographicLevel in geographic) geographic[p.geographicLevel]++
+    direct += p.directBeneficiaries ?? 0
+    indirect += p.indirectBeneficiaries ?? 0
+  }
+
+  return {
+    status,
+    sectors,
+    geographic_level: geographic,
+    beneficiaries: { direct, indirect, gender: null, age: null },
+    governorates_covered: new Set(projects.flatMap(p => p.governorates)).size,
+    donors_count: new Set(projects.map(p => p.donor.en)).size,
+  }
+}
+
+export async function getProjectsConfig(locale: Locale) {
+  const cms = await getProjectsData(locale)
+
+  return cms?.config ?? null
+}
+
 export async function getProjectBySlug(locale: Locale, slug: string): Promise<Project | null> {
-  // TODO: Replace with API call: GET /api/projects/{slug}?locale={locale}
+  const cms = await getProjectsData(locale)
+  const record = cms?.records?.find(p => p.slug === slug)
+  if (record) return mapCmsProjectToProject(record)
+
   return projectsData.find(p => p.slug === slug) ?? null
 }
 

@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Project, Locale } from '@/types'
+import { projectMatchesGovernorate, projectMatchesGenderFilter } from '@/lib/mapCmsProject'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import {
   Search, Filter, X, MapPin, Calendar, Users, Building2,
   ArrowRight, ArrowLeft, ChevronDown, LayoutGrid, List,
@@ -45,13 +47,33 @@ export default function ProjectsGrid({ projects, locale }: Props) {
   const [showFilters, setShowFilters]   = useState(false)
   const [viewMode, setViewMode]         = useState<'grid' | 'list'>('grid')
 
-  const sectors = useMemo(() => Array.from(new Set(projects.map(p => p.sectorKey))), [projects])
-  const govs    = useMemo(() => Array.from(new Set(projects.flatMap(p => p.governorates))).sort(), [projects])
+  const sectors = useMemo(() => {
+    const keys = Array.from(new Set(projects.map(p => p.sectorKey)))
+    return keys.map(key => ({
+      key,
+      label: projects.find(p => p.sectorKey === key)?.sector[locale] ?? key,
+    }))
+  }, [projects, locale])
+  const govs = useMemo(() => {
+    const map = new Map<string, string>()
+    projects.forEach((p) => {
+      if (p.governorateKeys?.length) {
+        p.governorateKeys.forEach((key, index) => {
+          map.set(key, p.governorates[index] ?? key)
+        })
+      } else {
+        p.governorates.forEach((label) => map.set(label, label))
+      }
+    })
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, locale))
+  }, [projects, locale])
   const donors  = useMemo(() => Array.from(new Set(projects.map(p => p.donor[locale]))).sort(), [projects, locale])
 
   const sectorColorMap = useMemo(() => {
     const map: Record<string, string> = {}
-    sectors.forEach((s, i) => { map[s] = SECTOR_COLORS[i % SECTOR_COLORS.length] })
+    sectors.forEach((s, i) => { map[s.key] = SECTOR_COLORS[i % SECTOR_COLORS.length] })
     return map
   }, [sectors])
 
@@ -59,9 +81,9 @@ export default function ProjectsGrid({ projects, locale }: Props) {
     if (search && !p.title[locale].toLowerCase().includes(search.toLowerCase()) && !p.shortDescription[locale].toLowerCase().includes(search.toLowerCase())) return false
     if (statusTab !== 'all' && p.status !== statusTab) return false
     if (filterSector !== 'all' && p.sectorKey !== filterSector) return false
-    if (filterGov !== 'all' && !p.governorates.includes(filterGov)) return false
+    if (filterGov !== 'all' && !projectMatchesGovernorate(p, filterGov)) return false
     if (filterDonor !== 'all' && p.donor[locale] !== filterDonor) return false
-    if (filterGender !== 'all' && p.genderClassification !== filterGender) return false
+    if (filterGender !== 'all' && !projectMatchesGenderFilter(p, filterGender)) return false
     return true
   }), [projects, search, statusTab, filterSector, filterGov, filterDonor, filterGender, locale])
 
@@ -141,11 +163,15 @@ export default function ProjectsGrid({ projects, locale }: Props) {
       {showFilters && (
         <div className="mb-5 p-5 bg-white rounded-2xl border border-neutral-200 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: isRTL ? 'القطاع' : 'Sector', value: filterSector, set: setFilterSector, opts: sectors.map(s => ({ value: s, label: s })) },
-            { label: isRTL ? 'المحافظة' : 'Governorate', value: filterGov, set: setFilterGov, opts: govs.map(g => ({ value: g, label: g })) },
+            { label: isRTL ? 'القطاع' : 'Sector', value: filterSector, set: setFilterSector, opts: sectors.map(s => ({ value: s.key, label: s.label })) },
+            { label: isRTL ? 'المحافظة' : 'Governorate', value: filterGov, set: setFilterGov, opts: govs.map((g) => ({ value: g.key, label: g.label })) },
             { label: isRTL ? 'الجهة المانحة' : 'Donor', value: filterDonor, set: setFilterDonor, opts: donors.map(d => ({ value: d, label: d })) },
-            { label: isRTL ? 'الفئة المستهدفة' : 'Gender Focus', value: filterGender, set: setFilterGender,
-              opts: [{ value:'mixed', label: isRTL?'مختلط':'Mixed' },{ value:'female', label: isRTL?'إناث':'Female' },{ value:'male', label: isRTL?'ذكور':'Male' },{ value:'youth', label: isRTL?'شباب':'Youth' }] },
+            { label: isRTL ? 'الجنس' : 'Gender', value: filterGender, set: setFilterGender,
+              opts: [
+                { value: 'both', label: isRTL ? 'ذكور وإناث' : 'Male & Female' },
+                { value: 'female', label: isRTL ? 'إناث' : 'Female' },
+                { value: 'male', label: isRTL ? 'ذكور' : 'Male' },
+              ] },
           ].map(f => (
             <div key={f.label}>
               <label className="block text-xs font-black text-neutral-400 mb-2 uppercase tracking-wider">{f.label}</label>
@@ -182,7 +208,7 @@ export default function ProjectsGrid({ projects, locale }: Props) {
           className="group relative flex flex-col md:flex-row overflow-hidden rounded-3xl bg-primary-900 mb-6 min-h-[280px] hover:shadow-2xl hover:shadow-primary-900/20 transition-all duration-500"
         >
           <div className="relative md:w-1/2 h-52 md:h-auto overflow-hidden">
-            <Image src={featured.featuredImage} alt={featured.title[locale]} fill className="object-cover opacity-70 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" sizes="50vw" />
+            <Image src={featured.featuredImage} alt={featured.title[locale]} fill className="object-cover opacity-70 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" sizes="50vw" unoptimized={isCmsHostedMediaUrl(featured.featuredImage)} />
             <div className={`absolute inset-0 ${isRTL ? 'bg-gradient-to-l' : 'bg-gradient-to-r'} from-primary-900/70 via-transparent to-transparent`} />
           </div>
           <div className="relative md:w-1/2 p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-primary-800 to-primary-900">
@@ -243,7 +269,7 @@ export default function ProjectsGrid({ projects, locale }: Props) {
                 className="group bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:border-primary-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
               >
                 <div className="relative h-44 overflow-hidden bg-primary-50">
-                  <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="33vw" />
+                  <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="33vw" unoptimized={isCmsHostedMediaUrl(project.featuredImage)} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   <div className={`absolute top-3 start-3 flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${status.badge}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${status.dot} ${project.status === 'active' ? 'animate-pulse' : ''}`} />
@@ -268,7 +294,12 @@ export default function ProjectsGrid({ projects, locale }: Props) {
                     </span>
                     <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border font-medium ${GENDER_COLORS[project.genderClassification]}`}>
                       <Users className="w-3 h-3 shrink-0" />
-                      {project.genderClassification === 'mixed' ? (isRTL ? 'مختلط' : 'Mixed') : project.genderClassification === 'female' ? (isRTL ? 'إناث' : 'Female') : project.genderClassification === 'male' ? (isRTL ? 'ذكور' : 'Male') : (isRTL ? 'شباب' : 'Youth')}
+                      {(project.targetGenderLabels?.length
+                        ? project.targetGenderLabels
+                        : project.targetGenders?.length
+                          ? project.targetGenders.map((g) => g === 'female' ? (isRTL ? 'إناث' : 'Female') : (isRTL ? 'ذكور' : 'Male'))
+                          : [project.genderClassification === 'mixed' ? (isRTL ? 'مختلط' : 'Mixed') : project.genderClassification === 'female' ? (isRTL ? 'إناث' : 'Female') : project.genderClassification === 'male' ? (isRTL ? 'ذكور' : 'Male') : (isRTL ? 'شباب' : 'Youth')]
+                      ).join(isRTL ? ' · ' : ' · ')}
                     </span>
                   </div>
                   <div className="mt-auto mb-3">
@@ -311,7 +342,7 @@ export default function ProjectsGrid({ projects, locale }: Props) {
                 className="group flex items-center gap-4 bg-white border border-neutral-100 rounded-2xl p-4 hover:border-primary-200 hover:shadow-lg transition-all duration-300"
               >
                 <div className="relative w-24 h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-                  <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="96px" />
+                  <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="96px" unoptimized={isCmsHostedMediaUrl(project.featuredImage)} />
                 </div>
                 <div className="w-1 h-14 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
                 <div className="flex-1 min-w-0">

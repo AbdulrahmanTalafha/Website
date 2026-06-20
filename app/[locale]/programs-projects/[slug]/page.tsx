@@ -5,22 +5,31 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { BASE_URL, buildArticleSchema, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
-import { getProjectBySlug, getNews, getPublications } from '@/lib/api'
-import { projectsData } from '@/data/projects'
+import { getProjectBySlug, getNews, getPublications, getProjects } from '@/lib/api'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
+import {
+  projectBeneficiarySummary,
+  projectGeographicLevelLabel,
+  projectGenderLabel,
+} from '@/lib/projectDisplay'
 import {
   Calendar, MapPin, Building2, Users, CheckCircle2, ChevronRight,
   ArrowLeft, ArrowRight, Newspaper, BookOpen, ExternalLink,
   Quote, Sparkles, Heart, Globe, Clock, Target,
 } from 'lucide-react'
 import DesignSwitcher from '@/components/projects/DesignSwitcher'
+import ProjectGallery from '@/components/projects/ProjectGallery'
 
 interface ProjectDetailProps {
   params: Promise<{ locale: string; slug: string }>
   searchParams: Promise<{ v?: string }>
 }
 
+export const revalidate = 60
+
 export async function generateStaticParams() {
-  return projectsData.flatMap(p =>
+  const projects = await getProjects('en')
+  return projects.flatMap(p =>
     ['ar', 'en'].map(locale => ({ locale, slug: p.slug }))
   )
 }
@@ -71,11 +80,9 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
   const months    = Math.round((endDate.getTime() - startDate.getTime()) / (1000*60*60*24*30))
   const fmtDate   = (d: Date) => d.toLocaleDateString(isRTL ? 'ar-JO' : 'en-GB', { year: 'numeric', month: 'long' })
 
-  const genderLabel =
-    project.genderClassification === 'mixed'  ? (isRTL ? 'ذكور وإناث' : 'Mixed') :
-    project.genderClassification === 'female' ? (isRTL ? 'إناث'        : 'Female') :
-    project.genderClassification === 'male'   ? (isRTL ? 'ذكور'        : 'Male') :
-    (isRTL ? 'شباب' : 'Youth')
+  const genderLabel = projectGenderLabel(project, locale)
+  const geoLevelLabel = projectGeographicLevelLabel(project, locale)
+  const beneficiarySummary = projectBeneficiarySummary(project, locale)
 
   const basePath    = `/${locale}/programs-projects/${slug}`
   const darkHref    = basePath
@@ -105,7 +112,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
 
       {/* ═══ HERO ═══ */}
       <div className="relative h-[70vh] min-h-[520px] overflow-hidden bg-primary-900">
-        <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />
+        <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" unoptimized={isCmsHostedMediaUrl(project.featuredImage)} />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/50 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary-900/60 to-transparent" />
 
@@ -295,13 +302,12 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
                 <div className="w-6 h-0.5 bg-primary-400 rounded-full" />
                 {isRTL ? 'لقطات من الميدان' : 'From the Field'}
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {project.images.map((img, i) => (
-                  <div key={i} className={`relative rounded-2xl overflow-hidden bg-primary-800 border border-white/10 ${i === 0 ? 'col-span-2 aspect-[16/9]' : 'aspect-square'} group`}>
-                    <Image src={img} alt={`${project.title[locale]} ${i+1}`} fill className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" sizes="(max-width:768px) 50vw, 33vw" />
-                  </div>
-                ))}
-              </div>
+              <ProjectGallery
+                images={project.images}
+                alt={project.title[locale]}
+                variant="dark"
+                isRTL={isRTL}
+              />
             </div>
           </section>
         )}
@@ -379,7 +385,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
 
       {/* ═══ HERO ═══ */}
       <div className="relative h-[70vh] min-h-[520px] overflow-hidden">
-        <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover" priority sizes="100vw" />
+        <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover" priority sizes="100vw" unoptimized={isCmsHostedMediaUrl(project.featuredImage)} />
         <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-white/70 to-transparent" />
 
@@ -556,13 +562,12 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
                 <div className="w-6 h-0.5 bg-primary-500 rounded-full" />
                 {isRTL ? 'لقطات من الميدان' : 'From the Field'}
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {project.images.map((img, i) => (
-                  <div key={i} className={`relative rounded-2xl overflow-hidden bg-primary-50 border border-neutral-100 ${i === 0 ? 'col-span-2 aspect-[16/9]' : 'aspect-square'} group shadow-sm`}>
-                    <Image src={img} alt={`${project.title[locale]} ${i+1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width:768px) 50vw, 33vw" />
-                  </div>
-                ))}
-              </div>
+              <ProjectGallery
+                images={project.images}
+                alt={project.title[locale]}
+                variant="light"
+                isRTL={isRTL}
+              />
             </div>
           </section>
         )}
@@ -640,7 +645,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
 
       {/* Hero */}
       <div className="relative h-72 md:h-96 overflow-hidden bg-primary-900">
-        <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />
+        <Image src={project.featuredImage} alt={project.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" unoptimized={isCmsHostedMediaUrl(project.featuredImage)} />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/60 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end container-wide pb-10">
           <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border w-fit mb-4 ${status.light}`}>
@@ -694,10 +699,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
                       project.genderClassification === 'male'   ? 'bg-blue-100 text-blue-700' :
                       'bg-orange-100 text-orange-700'}`}>
                       <Users className="w-3 h-3" />
-                      {project.genderClassification === 'mixed'  ? (isRTL ? 'ذكور وإناث' : 'Mixed') :
-                       project.genderClassification === 'female' ? (isRTL ? 'إناث' : 'Female') :
-                       project.genderClassification === 'male'   ? (isRTL ? 'ذكور' : 'Male') :
-                       (isRTL ? 'شباب' : 'Youth')}
+                      {genderLabel}
                     </div>
                     {project.ageGroups.map(ag => (
                       <span key={ag} className="text-xs font-bold bg-primary-50 text-primary-600 px-3 py-1.5 rounded-full">
@@ -729,13 +731,12 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
                     <span className="w-1 h-6 bg-secondary-500 rounded-full" />
                     {isRTL ? 'معرض الصور' : 'Photo Gallery'}
                   </h2>
-                  <div className="grid grid-cols-2 gap-3">
-                    {project.images.map((img, i) => (
-                      <div key={i} className="relative rounded-xl overflow-hidden aspect-video bg-neutral-100">
-                        <Image src={img} alt={`${project.title[locale]} ${i+1}`} fill className="object-cover hover:scale-105 transition-transform duration-500" sizes="(max-width:768px) 50vw, 33vw" />
-                      </div>
-                    ))}
-                  </div>
+                  <ProjectGallery
+                    images={project.images}
+                    alt={project.title[locale]}
+                    variant="classic"
+                    isRTL={isRTL}
+                  />
                 </div>
               )}
 
@@ -798,6 +799,8 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
                     { icon: <Building2 className="w-4 h-4 text-primary-500" />, label: isRTL ? 'الجهة المانحة' : 'Donor', value: project.donor[locale] },
                     { icon: <Calendar className="w-4 h-4 text-primary-500" />, label: isRTL ? 'فترة التنفيذ' : 'Period', value: `${fmtDate(startDate)} – ${fmtDate(endDate)}`, sub: `${months} ${isRTL ? 'شهر' : 'months'}` },
                     { icon: <MapPin className="w-4 h-4 text-primary-500" />, label: isRTL ? 'القطاع' : 'Sector', value: project.sector[locale] },
+                    ...(geoLevelLabel ? [{ icon: <Globe className="w-4 h-4 text-primary-500" />, label: isRTL ? 'التوزيع الجغرافي' : 'Geographic Level', value: geoLevelLabel }] : []),
+                    ...(beneficiarySummary ? [{ icon: <Users className="w-4 h-4 text-primary-500" />, label: isRTL ? 'المستفيدون' : 'Beneficiaries', value: beneficiarySummary }] : []),
                   ].map(row => (
                     <div key={row.label} className="flex items-start gap-3">
                       <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">{row.icon}</div>

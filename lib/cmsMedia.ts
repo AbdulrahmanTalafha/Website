@@ -4,6 +4,11 @@
  */
 import { cmsAssetUrl } from '@/lib/cmsUrl'
 
+/** CMS or other remote URL — skip Next.js image optimizer (required for local CMS in dev). */
+export function isCmsHostedMediaUrl(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://')
+}
+
 export function cmsAbsoluteMediaUrl(url: string | null | undefined): string | null {
   if (!url?.trim()) return null
   const trimmed = url.trim()

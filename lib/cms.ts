@@ -5,7 +5,7 @@
 
 import { cache } from 'react'
 
-const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? 'http://localhost:8000'
+const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? 'http://127.0.0.1:8000'
 
 // ─────────────────────────────────────────────
 // Shared primitive types
@@ -282,6 +282,150 @@ export interface CmsPartnersData {
 
 export const getPartnersData = cache(async (locale: string): Promise<CmsPartnersData | null> => {
   return fetchCms<CmsPartnersData>(`/api/${locale}/partners`)
+})
+
+export interface CmsProjectKeyResult {
+  en?: string | null
+  ar?: string | null
+}
+
+export interface CmsProjectsListRecord {
+  id: number
+  slug: string
+  title_en: string
+  title_ar: string
+  summary_en?: string | null
+  summary_ar?: string | null
+  description_en?: string | null
+  description_ar?: string | null
+  donor_en?: string | null
+  donor_ar?: string | null
+  partner_id?: number | null
+  start_date?: string | null
+  end_date?: string | null
+  status?: 'active' | 'completed' | 'upcoming' | null
+  sector_key?: string | null
+  sector_en?: string | null
+  sector_ar?: string | null
+  sector?: string | null
+  geographic_level?: 'local' | 'national' | null
+  governorates?: string[]
+  target_group_en?: string | null
+  target_group_ar?: string | null
+  governorate_keys?: string[]
+  target_genders?: ('male' | 'female')[]
+  target_gender_labels?: string[]
+  age_group_keys?: string[]
+  geographic_level_label?: string | null
+  age_groups?: string[]
+  direct_beneficiaries?: number | null
+  indirect_beneficiaries?: number | null
+  key_results?: CmsProjectKeyResult[]
+  featured_image?: string | null
+  images?: string[]
+  related_news_ids?: number[]
+  related_publication_ids?: number[]
+}
+
+export interface CmsProjectsSectorStat {
+  en: string
+  ar: string
+  count: number
+}
+
+export interface CmsProjectsStats {
+  status: { active: number; completed: number; upcoming: number }
+  sectors: Record<string, CmsProjectsSectorStat>
+  geographic_level: { local: number; national: number }
+  beneficiaries: {
+    direct: number
+    indirect: number
+    gender?: { female_pct: number; male_pct: number } | null
+    age?: Record<string, number> | null
+  }
+  governorates_covered: number
+  donors_count: number
+}
+
+export interface CmsProjectsData {
+  records: CmsProjectsListRecord[]
+  stats: CmsProjectsStats
+  config?: {
+    sectors: Record<string, string>
+    geographic_levels: Record<string, string>
+    genders: Record<string, string>
+    age_groups: Record<string, string>
+    governorates: Record<string, string>
+  }
+}
+
+export const getProjectsData = cache(async (locale: string): Promise<CmsProjectsData | null> => {
+  return fetchCms<CmsProjectsData>(`/api/${locale}/projects`)
+})
+
+// ─────────────────────────────────────────────
+// Programs & Projects listing page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsProjectsPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsProjectsPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+  use_live_stats?: boolean
+  stats?: Array<{ value: string; suffix?: string; label: string }>
+}
+
+export interface CmsProjectsPageDashboardSection {
+  key: string
+  is_visible: boolean
+  widgets?: {
+    status?: boolean
+    sectors?: boolean
+    geographic?: boolean
+    gender?: boolean
+    age?: boolean
+    beneficiary_cards?: boolean
+  }
+}
+
+export interface CmsProjectsPageGridSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+}
+
+export interface CmsProjectsPageSections {
+  hero?: CmsProjectsPageHeroSection
+  stats_kpi?: { key: string; is_visible: boolean }
+  dashboard?: CmsProjectsPageDashboardSection
+  projects_grid?: CmsProjectsPageGridSection
+}
+
+export interface CmsProjectsPageData {
+  page: CmsProjectsPageMeta
+  sections: CmsProjectsPageSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: Record<string, unknown>
+  }>
+}
+
+export const getProjectsPageData = cache(async (locale: string): Promise<CmsProjectsPageData | null> => {
+  return fetchCms<CmsProjectsPageData>(`/api/${locale}/projects-page`)
 })
 
 // ─────────────────────────────────────────────

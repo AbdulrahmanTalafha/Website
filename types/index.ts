@@ -107,8 +107,17 @@ export interface Project {
   status: 'active' | 'completed' | 'upcoming'
   sector: Record<Locale, string>
   sectorKey: string
+  geographicLevel?: 'local' | 'national'
+  geographicLevelLabel?: string
+  directBeneficiaries?: number
+  indirectBeneficiaries?: number
+  partnerId?: string
+  governorateKeys?: string[]
+  ageGroupKeys?: string[]
+  targetGenderLabels?: string[]
   targetGroup: Record<Locale, string>
   genderClassification: 'mixed' | 'female' | 'male' | 'youth'
+  targetGenders?: ('male' | 'female')[]
   ageGroups: string[]
   governorates: string[]
   keyResults: Array<Record<Locale, string>>

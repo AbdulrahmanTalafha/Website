@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import type { Locale } from '@/types'
 import type { Project } from '@/types'
 import { Calendar, MapPin, Users, ArrowRight, ArrowLeft } from 'lucide-react'
@@ -41,6 +42,7 @@ export default function ProjectCard({ project, locale, featured = false }: Proje
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          unoptimized={isCmsHostedMediaUrl(project.featuredImage)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         {/* Status badge */}
