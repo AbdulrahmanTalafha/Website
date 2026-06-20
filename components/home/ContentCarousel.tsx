@@ -19,9 +19,9 @@ export interface CarouselItem {
 interface ContentCarouselProps {
   locale: Locale;
   items: CarouselItem[];
-  sectionTitle: string;
-  viewAllHref: string;
-  viewAllLabel: string;
+  sectionTitle?: string | null;
+  viewAllHref?: string | null;
+  viewAllLabel?: string | null;
 }
 
 const VISIBLE = 2.2;
@@ -45,31 +45,42 @@ export default function ContentCarousel({
   const isRTL  = locale === 'ar';
   const mobile = useIsMobile();
 
+  if (!items.length) return null;
+
+  const title = sectionTitle?.trim();
+  const viewAll = viewAllLabel?.trim();
+  const viewAllUrl = viewAllHref?.trim();
+  const showHeader = title || viewAll;
+
   return (
     <section className="py-10 md:py-14 bg-white">
       <div className="container-wide">
+        {showHeader && (
         <div className="flex items-center justify-between mb-6 md:mb-10">
+          {title ? (
           <div className="flex items-center gap-0">
-            {/* Red accent bar — sits on the start side (right in RTL, left in LTR) */}
             <div className="w-1 h-9 bg-secondary-500 rounded-full shrink-0" />
             <span className="text-primary-500 text-xl md:text-2xl font-black px-3 tracking-tight leading-none">
-              {sectionTitle}
+              {title}
             </span>
-            {/* Decorative fading line — extends away from title */}
             <div className={`hidden md:block h-px w-32 ${isRTL ? 'bg-gradient-to-r' : 'bg-gradient-to-r'} from-neutral-300 to-transparent`} />
           </div>
+          ) : <div />}
+          {viewAll && viewAllUrl && (
           <Link
-            href={viewAllHref}
+            href={viewAllUrl}
             className="flex items-center gap-1.5 text-sm font-bold text-primary-500 hover:text-secondary-500 transition-colors group"
           >
-            {viewAllLabel}
+            {viewAll}
             <span className="w-6 h-6 rounded-full bg-secondary-500/10 group-hover:bg-secondary-500 flex items-center justify-center transition-colors duration-200">
               {isRTL
                 ? <ChevronLeft className="w-3.5 h-3.5 text-secondary-500 group-hover:text-white transition-colors" />
                 : <ChevronRight className="w-3.5 h-3.5 text-secondary-500 group-hover:text-white transition-colors" />}
             </span>
           </Link>
+          )}
         </div>
+        )}
 
         {mobile === null ? null : mobile
           ? <MobileCarousel items={items} isRTL={isRTL} />

@@ -16,15 +16,34 @@ interface Partner {
 interface PartnersCarouselProps {
   locale: Locale
   partners: Partner[]
+  title?: string | null
+  description?: string | null
+  viewAllLabel?: string | null
+  viewAllHref?: string | null
 }
 
-export default function PartnersCarousel({ locale, partners }: PartnersCarouselProps) {
+export default function PartnersCarousel({
+  locale,
+  partners,
+  title,
+  description,
+  viewAllLabel,
+  viewAllHref,
+}: PartnersCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null)
 
-  // Duplicate items for infinite loop
+  const displayTitle = title?.trim()
+  const displayDescription = description?.trim()
+  const viewAll = viewAllLabel?.trim()
+  const viewAllUrl = viewAllHref?.trim()
+  const showHeader = displayTitle || viewAll
+  const showDescription = displayDescription
+
   const items = [...partners, ...partners]
 
   useEffect(() => {
+    if (!partners.length) return
+
     const track = trackRef.current
     if (!track) return
 
@@ -47,31 +66,38 @@ export default function PartnersCarousel({ locale, partners }: PartnersCarouselP
     return () => cancelAnimationFrame(raf)
   }, [partners.length, locale])
 
+  if (!partners.length) return null
+
   return (
     <section className="py-16 bg-white overflow-hidden">
       <div className="container-wide mb-10">
-        {/* Header */}
+        {showHeader && (
         <div className="flex items-center justify-between mb-2">
+          {displayTitle ? (
           <div className="flex items-center gap-0">
             <div className="w-1 h-9 bg-secondary-500 rounded-full shrink-0" />
             <h2 className="text-primary-500 text-xl md:text-2xl font-black px-3 tracking-tight leading-none">
-              {locale === 'ar' ? 'شركاؤنا وداعمونا' : 'Partners & Supporters'}
+              {displayTitle}
             </h2>
             <div className="hidden md:block h-px w-32 bg-gradient-to-r from-neutral-300 to-transparent" />
           </div>
+          ) : <div />}
+          {viewAll && viewAllUrl && (
           <Link
-            href={`/${locale}/partners-supporters`}
+            href={viewAllUrl}
             className="shrink-0 text-sm font-semibold text-primary-500 hover:text-secondary-500 transition-colors flex items-center gap-1"
           >
-            {locale === 'ar' ? 'عرض الكل' : 'View All'}
+            {viewAll}
             <span className="text-base">{locale === 'ar' ? '←' : '→'}</span>
           </Link>
+          )}
         </div>
+        )}
+        {showDescription && (
         <p className="text-neutral-500 text-sm ps-5">
-          {locale === 'ar'
-            ? 'نفخر بشراكاتنا مع منظمات دولية ومحلية رائدة'
-            : 'We are proud of our partnerships with leading international and local organizations'}
+          {displayDescription}
         </p>
+        )}
       </div>
 
       {/* Carousel track */}

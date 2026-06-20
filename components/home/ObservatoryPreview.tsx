@@ -3,12 +3,19 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Locale } from '@/types'
 import type { ObservatoryStats } from '@/types'
+import type { CmsButtonDisplay } from '@/lib/cmsHomeContent'
 import Button from '@/components/common/Button'
 import { Shield, TrendingUp, AlertTriangle, Monitor } from 'lucide-react'
 
 interface ObservatoryPreviewProps {
   locale: Locale
   stats: ObservatoryStats
+  badge?: string | null
+  title?: string | null
+  description?: string | null
+  primaryButton?: CmsButtonDisplay | null
+  secondaryButton?: CmsButtonDisplay | null
+  cmsConnected?: boolean
 }
 
 /* ── Animated counter ─────────────────────────────────────── */
@@ -149,11 +156,42 @@ function TrendChart({ data, locale, started }: {
 }
 
 /* ── Main component ───────────────────────────────────────── */
-export default function ObservatoryPreview({ locale, stats }: ObservatoryPreviewProps) {
+export default function ObservatoryPreview({
+  locale,
+  stats,
+  badge,
+  title,
+  description,
+  primaryButton,
+  secondaryButton,
+  cmsConnected = false,
+}: ObservatoryPreviewProps) {
   const isRTL = locale === 'ar'
   const [tab, setTab] = useState<'platform' | 'trend'>('platform')
   const [started, setStarted] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  const staticBadge = locale === 'ar' ? 'المرصد الرقمي' : 'Digital Observatory'
+  const staticTitle = locale === 'ar' ? 'المرصد الرقمي لخطاب الكراهية' : 'Digital Hate Speech Observatory'
+  const staticDescription = locale === 'ar'
+    ? 'نرصد ونوثق حالات خطاب الكراهية والعنف الرقمي في الأردن عبر منهجية علمية دقيقة'
+    : 'We monitor and document hate speech and digital violence cases in Jordan with a precise scientific methodology'
+  const staticPrimaryLabel = locale === 'ar' ? 'ادخل المرصد' : 'Enter Observatory'
+  const staticPrimaryUrl = `/${locale}/digital-observatory`
+  const staticSecondaryLabel = locale === 'ar' ? 'تقارير المرصد' : 'Observatory Reports'
+  const staticSecondaryUrl = `/${locale}/publications-reports`
+
+  const displayBadge = cmsConnected ? (badge?.trim() || null) : (badge?.trim() || staticBadge)
+  const displayTitle = cmsConnected ? (title?.trim() || null) : (title?.trim() || staticTitle)
+  const displayDescription = cmsConnected ? (description?.trim() || null) : (description?.trim() || staticDescription)
+  const displayPrimary = cmsConnected
+    ? primaryButton
+    : (primaryButton ?? { label: staticPrimaryLabel, url: staticPrimaryUrl })
+  const displaySecondary = cmsConnected
+    ? secondaryButton
+    : (secondaryButton ?? { label: staticSecondaryLabel, url: staticSecondaryUrl })
+
+  const hasTextContent = displayBadge || displayTitle || displayDescription || displayPrimary || displaySecondary
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -180,23 +218,30 @@ export default function ObservatoryPreview({ locale, stats }: ObservatoryPreview
         <div className="lg:grid lg:grid-cols-2 lg:gap-14 lg:items-center">
 
           {/* Text side */}
+          {hasTextContent && (
           <div className={isRTL ? 'lg:order-2' : 'lg:order-1'}>
+            {displayBadge && (
             <div className="mb-4">
               <span className="inline-flex items-center gap-2 bg-secondary-50 text-secondary-600 border border-secondary-200 text-xs font-bold px-4 py-1.5 rounded-full">
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary-500 animate-pulse" />
-                {locale === 'ar' ? 'المرصد الرقمي' : 'Digital Observatory'}
+                {displayBadge}
               </span>
             </div>
+            )}
 
+            {displayTitle && (
             <h2 className={`text-3xl md:text-4xl font-black text-primary-500 leading-tight mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {locale === 'ar' ? 'المرصد الرقمي لخطاب الكراهية' : 'Digital Hate Speech Observatory'}
+              {displayTitle}
             </h2>
+            )}
+            {(displayTitle || displayDescription) && (
             <div className="w-12 h-1 bg-secondary-500 mb-4" />
+            )}
+            {displayDescription && (
             <p className={`text-neutral-500 text-base leading-relaxed mb-8 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {locale === 'ar'
-                ? 'نرصد ونوثق حالات خطاب الكراهية والعنف الرقمي في الأردن عبر منهجية علمية دقيقة'
-                : 'We monitor and document hate speech and digital violence cases in Jordan with a precise scientific methodology'}
+              {displayDescription}
             </p>
+            )}
 
             <div className="grid grid-cols-2 gap-3 mb-8">
               {statItems.map((item, idx) => (
@@ -220,15 +265,22 @@ export default function ObservatoryPreview({ locale, stats }: ObservatoryPreview
               ))}
             </div>
 
+            {(displayPrimary || displaySecondary) && (
             <div className={`flex flex-wrap gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <Button href={`/${locale}/digital-observatory`} variant="primary" size="md">
-                {locale === 'ar' ? 'ادخل المرصد' : 'Enter Observatory'}
+              {displayPrimary && (
+              <Button href={displayPrimary.url} variant="primary" size="md">
+                {displayPrimary.label}
               </Button>
-              <Button href={`/${locale}/publications-reports`} variant="outline" size="md">
-                {locale === 'ar' ? 'تقارير المرصد' : 'Observatory Reports'}
+              )}
+              {displaySecondary && (
+              <Button href={displaySecondary.url} variant="outline" size="md">
+                {displaySecondary.label}
               </Button>
+              )}
             </div>
+            )}
           </div>
+          )}
 
           {/* Chart side */}
           <div

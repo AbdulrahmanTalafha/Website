@@ -13,10 +13,21 @@ interface SeoOptions {
   canonicalPath: string
   noIndex?: boolean
   ogType?: 'website' | 'article'
+  /** Use full title as-is (skip layout title template). Best for homepage meta title. */
+  absoluteTitle?: boolean
 }
 
 export function buildMetadata(opts: SeoOptions) {
-  const { locale, customTitle, customDescription, ogImage, canonicalPath, noIndex, ogType } = opts
+  const {
+    locale,
+    customTitle,
+    customDescription,
+    ogImage,
+    canonicalPath,
+    noIndex,
+    ogType,
+    absoluteTitle,
+  } = opts
 
   const siteName = siteData.name[locale]
   const title = customTitle ?? siteName
@@ -25,7 +36,7 @@ export function buildMetadata(opts: SeoOptions) {
   const canonical = `${BASE_URL}${canonicalPath}`
 
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
     metadataBase: new URL(BASE_URL),
     alternates: {
