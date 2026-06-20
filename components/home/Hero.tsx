@@ -5,6 +5,7 @@ import type { CmsHomeData } from '@/lib/cms'
 import { getHeroSection } from '@/lib/cms'
 import { cmsAssetUrl } from '@/lib/cmsUrl'
 import { cmsButton, cmsConnected, cmsText } from '@/lib/cmsHomeContent'
+import { cmsUrl } from '@/lib/cmsUrl'
 import { ArrowRight, ArrowLeft, ChevronDown } from 'lucide-react'
 
 interface HeroProps {
@@ -39,28 +40,28 @@ export default async function Hero({ locale, cmsData = null }: HeroProps) {
     cmsHero?.primary_button,
     heroData.ctaPrimary[locale],
     `/${locale}/programs-projects`,
+    locale,
   )
   const secondaryBtn = cmsButton(
     connected,
     cmsHero?.secondary_button,
     heroData.ctaSecondary[locale],
     `/${locale}/publications-reports`,
+    locale,
   )
   const tertiaryBtn = cmsButton(
     connected,
     cmsHero?.tertiary_link,
     locale === 'ar' ? 'المرصد الرقمي' : 'Digital Observatory',
     `/${locale}/digital-observatory`,
+    locale,
   )
 
   const backgroundImage = connected
     ? cmsAssetUrl(cmsHero?.background_image)
     : (cmsAssetUrl(cmsHero?.background_image) ?? heroData.imagePlaceholder)
 
-  const resolveUrl = (url: string) => {
-    if (url.startsWith('/') && !url.startsWith(`/${locale}/`)) return `/${locale}${url}`
-    return url
-  }
+  const resolveUrl = (url: string) => cmsUrl(url, locale)
 
   const staticStats = [
     { value: '47', suffix: '+', label: locale === 'ar' ? 'مشروع منفَّذ' : 'Projects' },

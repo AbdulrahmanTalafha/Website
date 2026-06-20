@@ -34,20 +34,29 @@ export function resolveHomeSectionOrder(
     return [...DEFAULT_HOME_SECTION_ORDER]
   }
 
-  const fromOrder = cmsData.sections_order?.filter((key) => key !== 'hero' && KNOWN_SECTION_KEYS.has(key))
+  const visibleKeys = new Set(
+    Object.keys(cmsData.sections ?? {}).filter((key) => key !== 'hero'),
+  )
+
+  const fromOrder = cmsData.sections_order?.filter(
+    (key) => key !== 'hero' && KNOWN_SECTION_KEYS.has(key) && visibleKeys.has(key),
+  )
   if (fromOrder && fromOrder.length > 0) {
     return dedupeKeys(fromOrder)
   }
 
   const fromList = cmsData.sections_list
-    ?.map((item) => item.key)
-    .filter((key) => key !== 'hero' && KNOWN_SECTION_KEYS.has(key))
+    ?.filter((item) => item.is_visible)
+    .map((item) => item.key)
+    .filter((key) => key !== 'hero' && KNOWN_SECTION_KEYS.has(key) && visibleKeys.has(key))
 
   if (fromList && fromList.length > 0) {
     return dedupeKeys(fromList)
   }
 
-  return [...DEFAULT_HOME_SECTION_ORDER]
+  return dedupeKeys(
+    [...DEFAULT_HOME_SECTION_ORDER].filter((key) => visibleKeys.has(key)),
+  )
 }
 
 function dedupeKeys(keys: string[]): string[] {

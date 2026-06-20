@@ -126,6 +126,7 @@ export default function PartnersCarousel({
                   width={140}
                   height={60}
                   className="object-contain max-h-14 w-full"
+                  unoptimized={partner.logo.endsWith('.svg') || partner.logo.startsWith('http')}
                 />
               </a>
             ))}

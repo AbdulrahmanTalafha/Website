@@ -21,7 +21,10 @@ import { getHomeData, getSettings } from '@/lib/cms'
 import { cmsButton, cmsConnected, cmsRichHtml, cmsSectionVisible, cmsText } from '@/lib/cmsHomeContent'
 import { resolveHomeSeo } from '@/lib/homeSeo'
 import { resolveHomeSectionOrder } from '@/lib/homeSectionOrder'
+import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
 import { resolveSiteSettings } from '@/lib/siteSettings'
+import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { cmsUrl } from '@/lib/cmsUrl'
 import type { CmsPublicationRecord, CmsProjectRecord, CmsInitiativeRecord, CmsNewsRecord } from '@/lib/cms'
 import type { Publication, NewsItem } from '@/types'
 
@@ -83,9 +86,12 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.news_ticker?.label,
     locale === 'ar' ? 'تقارير' : 'Latest Reports',
   )
-  const tickerHref = connected
-    ? (cms?.news_ticker?.url?.trim() || undefined)
-    : (cms?.news_ticker?.url?.trim() || `/${locale}/publications-reports`)
+  const tickerHref = cmsUrl(
+    connected
+      ? (cms?.news_ticker?.url?.trim() || `/${locale}/publications-reports`)
+      : `/${locale}/publications-reports`,
+    locale,
+  )
 
   // About intro CMS fields
   const staticAboutBadge = locale === 'ar' ? 'من نحن' : 'About Us'
@@ -112,12 +118,14 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.about_intro?.primary_button,
     locale === 'ar' ? 'اعرف المزيد' : 'Learn More',
     `/${locale}/about`,
+    locale,
   )
   const aboutBtn2 = cmsButton(
     connected,
     cms?.about_intro?.secondary_button,
     locale === 'ar' ? 'فريق العمل' : 'Our Team',
     `/${locale}/team-governance`,
+    locale,
   )
 
   const staticFocusAreas = [
@@ -174,7 +182,11 @@ export default async function HomePage({ params }: HomePageProps) {
         href: `/${loc}/publications-reports/${(r as CmsPublicationRecord).slug}`,
         title: (r as CmsPublicationRecord).title,
         shortDescription: (r as CmsPublicationRecord).summary ?? '',
-        image: `https://picsum.photos/seed/pub-${(r as CmsPublicationRecord).slug}/800/500`,
+        image: resolveCmsMediaUrl(
+          (r as CmsPublicationRecord).cover_image ?? (r as CmsPublicationRecord).image,
+          publications.find((pub) => pub.slug === (r as CmsPublicationRecord).slug)?.coverImage,
+          `https://picsum.photos/seed/pub-${(r as CmsPublicationRecord).slug}/800/500`,
+        ),
         badge: loc === 'ar'
           ? ((r as CmsPublicationRecord).type === 'guide' ? 'دليل' : (r as CmsPublicationRecord).type === 'report' ? 'تقرير' : (r as CmsPublicationRecord).type === 'study' ? 'دراسة' : (r as CmsPublicationRecord).type === 'brief' ? 'موجز' : 'إصدار')
           : ((r as CmsPublicationRecord).type === 'guide' ? 'Guide' : (r as CmsPublicationRecord).type === 'report' ? 'Report' : (r as CmsPublicationRecord).type === 'study' ? 'Study' : (r as CmsPublicationRecord).type === 'brief' ? 'Brief' : 'Publication'),
@@ -195,6 +207,7 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.publications_carousel?.view_all,
     loc === 'ar' ? 'عرض الكل' : 'View All',
     `/${loc}/publications-reports`,
+    loc,
   )
 
   // Projects carousel items
@@ -215,7 +228,11 @@ export default async function HomePage({ params }: HomePageProps) {
         href: `/${loc}/programs-projects/${(r as CmsProjectRecord).slug}`,
         title: (r as CmsProjectRecord).title,
         shortDescription: (r as CmsProjectRecord).summary ?? '',
-        image: `https://picsum.photos/seed/proj-${(r as CmsProjectRecord).slug}/800/500`,
+        image: resolveCmsMediaUrl(
+          (r as CmsProjectRecord).featured_image ?? (r as CmsProjectRecord).image,
+          projects.find((proj) => proj.slug === (r as CmsProjectRecord).slug)?.featuredImage,
+          `https://picsum.photos/seed/proj-${(r as CmsProjectRecord).slug}/800/500`,
+        ),
         badge: (r as CmsProjectRecord).sector ?? (loc === 'ar' ? 'مشروع' : 'Project'),
         date: (r as CmsProjectRecord).start_date
           ? new Date((r as CmsProjectRecord).start_date!).toLocaleDateString(loc === 'ar' ? 'ar-JO' : 'en-GB', { year: 'numeric', month: 'long' })
@@ -234,6 +251,7 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.projects_carousel?.view_all,
     loc === 'ar' ? 'عرض الكل' : 'View All',
     `/${loc}/programs-projects`,
+    loc,
   )
 
   // Initiatives carousel items
@@ -254,7 +272,11 @@ export default async function HomePage({ params }: HomePageProps) {
         href: `/${loc}/initiatives-campaigns`,
         title: (r as CmsInitiativeRecord).title,
         shortDescription: (r as CmsInitiativeRecord).summary ?? '',
-        image: `https://picsum.photos/seed/init-${(r as CmsInitiativeRecord).slug}/800/500`,
+        image: resolveCmsMediaUrl(
+          (r as CmsInitiativeRecord).featured_image ?? (r as CmsInitiativeRecord).image,
+          initiatives.find((init) => init.slug === (r as CmsInitiativeRecord).slug)?.featuredImage,
+          `https://picsum.photos/seed/init-${(r as CmsInitiativeRecord).slug}/800/500`,
+        ),
         badge: loc === 'ar' ? 'مبادرة' : 'Initiative',
         date: (r as CmsInitiativeRecord).start_date
           ? new Date((r as CmsInitiativeRecord).start_date!).toLocaleDateString(loc === 'ar' ? 'ar-JO' : 'en-GB', { year: 'numeric', month: 'long' })
@@ -273,6 +295,7 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.initiatives_carousel?.view_all,
     loc === 'ar' ? 'عرض الكل' : 'View All',
     `/${loc}/initiatives-campaigns`,
+    loc,
   )
 
   // Latest Publications
@@ -281,7 +304,11 @@ export default async function HomePage({ params }: HomePageProps) {
     slug: r.slug,
     title: { ar: r.title, en: r.title } as Record<Locale, string>,
     summary: { ar: r.summary ?? '', en: r.summary ?? '' } as Record<Locale, string>,
-    coverImage: `https://picsum.photos/seed/pub-${r.slug}/400/560`,
+    coverImage: resolveCmsMediaUrl(
+      r.cover_image ?? r.image,
+      publications.find((pub) => pub.slug === r.slug)?.coverImage,
+      `https://picsum.photos/seed/pub-${r.slug}/400/560`,
+    ),
     publishDate: r.publication_date ?? new Date().toISOString().split('T')[0],
     type: (r.type ?? 'report') as Publication['type'],
     tags: [],
@@ -305,6 +332,7 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.latest_publications?.view_all,
     locale === 'ar' ? 'المكتبة كاملة' : 'Full Library',
     `/${locale}/publications-reports`,
+    locale,
   )
 
   // Latest News
@@ -316,7 +344,11 @@ export default async function HomePage({ params }: HomePageProps) {
     excerpt: { ar: r.summary ?? '', en: r.summary ?? '' } as Record<Locale, string>,
     content: { ar: r.content ?? '', en: r.content ?? '' } as Record<Locale, string>,
     date: r.published_at ?? new Date().toISOString().split('T')[0],
-    image: `https://picsum.photos/seed/news-${r.slug}/800/500`,
+    image: resolveCmsMediaUrl(
+      r.image ?? r.cover_image,
+      news.find((item) => item.slug === r.slug)?.image,
+      `https://picsum.photos/seed/news-${r.slug}/800/500`,
+    ),
     author: { ar: '', en: '' } as Record<Locale, string>,
     tags: [],
   })
@@ -338,6 +370,7 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.latest_news?.view_all,
     locale === 'ar' ? 'المركز الإعلامي' : 'Media Center',
     `/${locale}/media-center`,
+    locale,
   )
 
   // Partners
@@ -346,8 +379,15 @@ export default async function HomePage({ params }: HomePageProps) {
     ? (cmsPartnerRecords.length > 0
       ? cmsPartnerRecords.map((p) => ({
         id: String(p.id),
-        name: { ar: p.name, en: p.name } as Record<string, string>,
-        logo: `https://picsum.photos/seed/partner-${p.id}/200/80`,
+        name: {
+          ar: p.name_ar ?? p.name,
+          en: p.name_en ?? p.name,
+        } as Record<string, string>,
+        logo: resolveCmsMediaUrl(
+          p.logo,
+          staticPartnerLogoByNameEn(p.name_en ?? '', partnersData),
+          `https://picsum.photos/seed/partner-${p.id}/200/80`,
+        ),
         website: p.website_url ?? undefined,
         category: p.category,
       }))
@@ -371,6 +411,7 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.partners?.view_all,
     locale === 'ar' ? 'عرض الكل' : 'View All',
     `/${locale}/partners-supporters`,
+    locale,
   )
 
   // Observatory preview CMS fields
@@ -396,12 +437,14 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.observatory_preview?.primary_button,
     locale === 'ar' ? 'ادخل المرصد' : 'Enter Observatory',
     `/${locale}/digital-observatory`,
+    locale,
   )
   const observatoryBtn2 = cmsButton(
     connected,
     cms?.observatory_preview?.secondary_button,
     locale === 'ar' ? 'تقارير المرصد' : 'Observatory Reports',
     `/${locale}/publications-reports`,
+    locale,
   )
 
   // Home stats CMS fields
@@ -438,12 +481,14 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.e_election_cta?.primary_button,
     locale === 'ar' ? 'استكشف المنصة' : 'Explore Platform',
     `/${locale}/e-election-platform`,
+    locale,
   )
   const electionBtn2 = cmsButton(
     connected,
     cms?.e_election_cta?.secondary_button,
     locale === 'ar' ? 'الانتخابات الحالية' : 'Current Elections',
     `/${locale}/e-election-platform`,
+    locale,
   )
   const showElectionSection = cmsSectionVisible(connected, cms, 'e_election_cta') && (!connected || electionBadge || electionTitle || electionDesc || electionBtn1 || electionBtn2)
 
@@ -465,12 +510,14 @@ export default async function HomePage({ params }: HomePageProps) {
     cms?.contact_cta?.primary_button,
     locale === 'ar' ? 'اتصل بنا' : 'Contact Us',
     `/${locale}/contact`,
+    locale,
   )
   const contactBtn2 = cmsButton(
     connected,
     cms?.contact_cta?.secondary_button,
     locale === 'ar' ? 'شركاؤنا' : 'Our Partners',
     `/${locale}/partners-supporters`,
+    locale,
   )
   const showContactSection = cmsSectionVisible(connected, cms, 'contact_cta') && (!connected || contactTitle || contactDesc || contactBtn1 || contactBtn2)
 

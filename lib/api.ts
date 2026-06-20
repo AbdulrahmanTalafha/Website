@@ -12,6 +12,10 @@ import { electionsData } from '@/data/elections'
 import { partnersData } from '@/data/partners'
 import { homeData } from '@/data/home'
 import { aboutData } from '@/data/about'
+import { getPartnersData } from '@/lib/cms'
+import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
+import type { PartnerCategory } from '@/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NOTE: All functions below currently return static mock data.
@@ -121,8 +125,26 @@ export async function getElections(locale: Locale): Promise<Election[]> {
 }
 
 export async function getPartners(locale: Locale): Promise<Partner[]> {
-  // TODO: Replace with API call: GET /api/partners?locale={locale}
-  return partnersData
+  const cms = await getPartnersData(locale)
+
+  if (!cms?.records?.length) {
+    return partnersData
+  }
+
+  return cms.records.map((partner) => ({
+    id: String(partner.id),
+    name: { ar: partner.name_ar, en: partner.name_en },
+    description: partner.description_en || partner.description_ar
+      ? { ar: partner.description_ar ?? '', en: partner.description_en ?? '' }
+      : undefined,
+    logo: resolveCmsMediaUrl(
+      partner.logo,
+      staticPartnerLogoByNameEn(partner.name_en, partnersData),
+      `https://picsum.photos/seed/partner-${partner.id}/200/80`,
+    ),
+    website: partner.website_url ?? undefined,
+    category: partner.category as PartnerCategory,
+  }))
 }
 
 export async function searchContent(locale: Locale, query: string) {

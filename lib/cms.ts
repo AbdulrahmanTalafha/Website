@@ -37,17 +37,23 @@ export interface CmsPublicationRecord extends CmsRecord {
   type: string
   publication_date?: string | null
   external_url?: string | null
+  cover_image?: string | null
+  image?: string | null
 }
 
 export interface CmsProjectRecord extends CmsRecord {
   category?: string | null
   sector?: string | null
   start_date?: string | null
+  featured_image?: string | null
+  image?: string | null
 }
 
 export interface CmsInitiativeRecord extends CmsRecord {
   category?: string | null
   start_date?: string | null
+  featured_image?: string | null
+  image?: string | null
 }
 
 export interface CmsNewsRecord extends CmsRecord {
@@ -55,14 +61,19 @@ export interface CmsNewsRecord extends CmsRecord {
   category: string
   published_at?: string | null
   external_url?: string | null
+  image?: string | null
+  cover_image?: string | null
 }
 
 export interface CmsPartnerRecord {
   id: number
   name: string
+  name_en?: string
+  name_ar?: string
   description?: string | null
   website_url?: string | null
   category: string
+  logo?: string | null
 }
 
 // ─────────────────────────────────────────────
@@ -177,6 +188,13 @@ export interface CmsHomeData {
     updated_at: string
   }
   sections: CmsHomeSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: unknown
+  }>
 }
 
 // ─────────────────────────────────────────────
@@ -245,6 +263,25 @@ export const getHomeData = cache(async (locale: string): Promise<CmsHomeData | n
 
 export const getSettings = cache(async (locale: string): Promise<CmsSettingsData | null> => {
   return fetchCms<CmsSettingsData>(`/api/${locale}/settings`)
+})
+
+export interface CmsPartnersListRecord {
+  id: number
+  name_en: string
+  name_ar: string
+  description_en?: string | null
+  description_ar?: string | null
+  website_url?: string | null
+  category: string
+  logo?: string | null
+}
+
+export interface CmsPartnersData {
+  records: CmsPartnersListRecord[]
+}
+
+export const getPartnersData = cache(async (locale: string): Promise<CmsPartnersData | null> => {
+  return fetchCms<CmsPartnersData>(`/api/${locale}/partners`)
 })
 
 // ─────────────────────────────────────────────

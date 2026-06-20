@@ -77,6 +77,7 @@ export default async function PartnersPage({ params }: PageProps) {
                             fill
                             className="object-contain grayscale group-hover:grayscale-0 transition-all"
                             sizes="80px"
+                            unoptimized={partner.logo.endsWith('.svg') || partner.logo.startsWith('http')}
                           />
                         </div>
                       )}

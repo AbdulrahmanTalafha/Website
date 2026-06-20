@@ -4,6 +4,7 @@
  */
 
 import type { CmsHomeSections } from '@/lib/cms'
+import { cmsUrl } from '@/lib/cmsUrl'
 
 export function cmsConnected(cms: unknown): boolean {
   return Boolean(cms && typeof cms === 'object' && 'sections' in cms)
@@ -30,7 +31,9 @@ export function cmsSectionVisible(
   key: keyof CmsHomeSections,
 ): boolean {
   if (!connected) return true
-  return cms?.[key] !== undefined
+  const section = cms?.[key]
+  if (!section) return false
+  return section.is_visible !== false
 }
 
 export function cmsRichHtml(
@@ -51,11 +54,13 @@ export function cmsButton(
   button: { label?: string | null; url?: string | null } | null | undefined,
   fallbackLabel: string,
   fallbackUrl: string,
+  locale: string,
 ): CmsButtonDisplay | null {
   if (!connected) {
-    return { label: fallbackLabel, url: fallbackUrl }
+    return { label: fallbackLabel, url: cmsUrl(fallbackUrl, locale) }
   }
   const label = button?.label?.trim()
   if (!label) return null
-  return { label, url: button?.url?.trim() || fallbackUrl }
+  const rawUrl = button?.url?.trim() || fallbackUrl
+  return { label, url: cmsUrl(rawUrl, locale) }
 }
