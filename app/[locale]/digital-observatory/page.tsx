@@ -4,6 +4,23 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { buildMetadata } from '@/lib/seo'
 import { getObservatoryData } from '@/lib/api'
+import { getObservatoryPageData } from '@/lib/cms'
+import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
+import { cmsAbsoluteMediaUrl } from '@/lib/cmsMedia'
+import { resolveObservatoryPageSeo } from '@/lib/observatoryPageSeo'
+import {
+  OBSERVATORY_SECTION_ANCHORS,
+  observatorySectionVisible,
+  resolveObservatoryPageSectionOrder,
+  type ObservatoryPageSectionKey,
+} from '@/lib/observatoryPageSectionOrder'
+import type {
+  CmsObservatoryClassification,
+  CmsObservatoryMethodologyStep,
+  CmsObservatoryReportStep,
+  CmsObservatoryTextItem,
+} from '@/lib/cms'
+import ObservatoryHeroBackground from '@/components/observatory/ObservatoryHeroBackground'
 import {
   Shield, AlertTriangle, TrendingUp, FileBarChart2, BookOpen,
   Target, Layers, BarChart2, MapPin, Users, Clock, Info,
@@ -13,23 +30,70 @@ import {
 import DesignSwitcher from '@/components/projects/DesignSwitcher'
 import ReportForm from '@/components/observatory/ReportForm'
 
+const CLASSIFICATION_ICONS: Record<string, typeof AlertTriangle> = {
+  'hate-speech': AlertTriangle,
+  'digital-violence': Shield,
+  defamation: Eye,
+  impersonation: Users,
+}
+
+const DEFAULT_METHODOLOGY_STEPS: CmsObservatoryMethodologyStep[] = [
+  { num: '01', title: 'Monitoring', desc: 'Continuous monitoring of social media platforms using specialized tools and community reports' },
+  { num: '02', title: 'Documentation', desc: 'Documenting cases with unified standards and saving them in a secure database' },
+  { num: '03', title: 'Analysis', desc: 'Analyzing patterns and trends, classifying cases by type, platform, and group' },
+  { num: '04', title: 'Reporting', desc: 'Publishing periodic reports with findings and actionable recommendations' },
+]
+
+const DEFAULT_CLASSIFICATIONS: CmsObservatoryClassification[] = [
+  { id: 'hate-speech', title: 'Hate Speech', desc: 'Content inciting hatred or discrimination based on gender, religion, or origin', color: '#FA382E' },
+  { id: 'digital-violence', title: 'Digital Violence', desc: 'Threats, blackmail, electronic harassment, and online stalking', color: '#8b5cf6' },
+  { id: 'defamation', title: 'Defamation & Harm', desc: 'Spreading false or harmful information to damage reputation', color: '#f59e0b' },
+  { id: 'impersonation', title: 'Impersonation', desc: 'Creating fake accounts or pretending to be another person', color: '#0ea5e9' },
+]
+
+const DEFAULT_INDICATORS: CmsObservatoryTextItem[] = [
+  { text: 'Total and categorized case counts' },
+  { text: 'Geographic and gender case distribution' },
+  { text: 'Monthly and quarterly time trends' },
+  { text: 'Case distribution by platform' },
+  { text: 'Most targeted demographic groups' },
+  { text: 'Temporal comparison across periods' },
+]
+
+const DEFAULT_DISCLAIMER_ITEMS: CmsObservatoryTextItem[] = [
+  { text: 'Data represents documented cases only and does not reflect the full extent of the phenomenon.' },
+  { text: 'Not all submitted reports can be independently verified.' },
+  { text: 'Data is used for research and awareness purposes only.' },
+  { text: 'The observatory is not a legal entity for prosecution.' },
+  { text: 'Personal names and information are removed before publication.' },
+]
+
+const DEFAULT_AFTER_REPORT_STEPS: CmsObservatoryReportStep[] = [
+  { title: 'Report Received', desc: 'An instant reference number is generated for tracking' },
+  { title: 'Review', desc: 'The specialized team reviews the report within 48 hours' },
+  { title: 'Documentation', desc: 'Case is documented in the observatory database' },
+  { title: 'Response', desc: 'Appropriate actions taken based on case nature' },
+]
+
 interface PageProps {
   params: Promise<{ locale: string }>
   searchParams: Promise<{ v?: string }>
 }
 
+export const revalidate = 60
+
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
   const { v } = await searchParams
-  const description = locale === 'ar'
-    ? 'المرصد الرقمي من مركز We Rise لرصد وتحليل خطاب الكراهية والعنف الرقمي وتقديم تقارير وبيانات حول السلامة الرقمية'
-    : 'The We Rise Digital Observatory monitors and analyzes hate speech and digital violence, providing reports and data on digital safety'
+  const pageCms = await getObservatoryPageData(locale)
+  const seo = resolveObservatoryPageSeo(pageCms, locale)
+
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/digital-observatory`,
-    customTitle: locale === 'ar' ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence',
-    customDescription: description,
-    noIndex: Boolean(v),
+    customTitle: seo.title,
+    customDescription: seo.description,
+    noIndex: Boolean(v) || seo.noIndex,
   })
 }
 
@@ -70,9 +134,88 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
   const { locale } = await params as { locale: Locale }
   await searchParams
   const variant = 'dark' as 'dark' | 'light' | 'classic'
-  const { stats, reports } = await getObservatoryData(locale)
+  const [{ stats, reports }, pageCms] = await Promise.all([
+    getObservatoryData(locale),
+    getObservatoryPageData(locale),
+  ])
 
+  const connected = cmsConnected(pageCms)
+  const hero = pageCms?.sections?.hero
   const isRTL = locale === 'ar'
+  const heroVideoUrl = connected ? cmsAbsoluteMediaUrl(hero?.background_video) : null
+
+  const heroBadge = cmsText(
+    connected,
+    hero?.badge,
+    isRTL ? 'يعمل الآن' : 'Live Monitoring',
+  )
+
+  const heroTitle = cmsText(
+    connected,
+    hero?.title,
+    isRTL ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence',
+  ) ?? (isRTL ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence')
+
+  const heroSubtitle = cmsText(
+    connected,
+    hero?.subtitle,
+    isRTL
+      ? 'نرصد ونوثق ونحلل حالات خطاب الكراهية والعنف الرقمي عبر المنصات الرقمية في الأردن، لبناء بيئة رقمية آمنة ومحمية.'
+      : 'We monitor, document, and analyze hate speech and digital violence cases across digital platforms in Jordan, building a safe and protected digital environment.',
+  )
+
+  const about = pageCms?.sections?.about
+  const dashboards = pageCms?.sections?.dashboards
+  const reportsSection = pageCms?.sections?.reports
+  const reportForm = pageCms?.sections?.report_form
+
+  const sectionOrder = resolveObservatoryPageSectionOrder(pageCms, connected)
+
+  const aboutBadge = cmsText(connected, about?.badge, isRTL ? 'نبذة عن المرصد' : 'About the Observatory')
+  const aboutTitle = cmsText(connected, about?.title, isRTL ? 'ما هو المرصد الرقمي؟' : 'What is the Digital Observatory?')
+  const goalTitle = cmsText(connected, about?.goal_title, isRTL ? 'هدف المرصد' : 'Observatory Goal')
+  const goalText = cmsText(connected, about?.goal_text, isRTL
+    ? 'رصد وتوثيق وتحليل حالات خطاب الكراهية والعنف الرقمي الموجهة ضد الأفراد والمجتمعات عبر منصات التواصل الاجتماعي في الأردن، بهدف دعم السياسات الرقمية وتعزيز الحماية القانونية.'
+    : 'Monitor, document, and analyze hate speech and digital violence cases targeting individuals and communities on social media in Jordan, to support digital policies and strengthen legal protections.')
+  const roleTitle = cmsText(connected, about?.role_title, isRTL ? 'دور المرصد' : 'Observatory Role')
+  const roleText = cmsText(connected, about?.role_text, isRTL
+    ? 'يعمل المرصد على تقديم بيانات موثوقة للجهات الحكومية والمجتمع المدني والباحثين والإعلاميين، لتعزيز المساءلة الرقمية والاستجابة الفعّالة لظاهرة العنف الإلكتروني.'
+    : 'The observatory provides reliable data to government entities, civil society, researchers, and journalists to enhance digital accountability and effective response to online violence.')
+  const methodologyTitle = cmsText(connected, about?.methodology_title, isRTL ? 'المنهجية المعتمدة' : 'Adopted Methodology')
+  const methodologySteps = connected && about?.methodology_steps?.length ? about.methodology_steps : DEFAULT_METHODOLOGY_STEPS
+  const classificationsTitle = cmsText(connected, about?.classifications_title, isRTL ? 'التصنيفات المعتمدة' : 'Adopted Classifications')
+  const classifications = connected && about?.classifications?.length ? about.classifications : DEFAULT_CLASSIFICATIONS
+  const indicatorsTitle = cmsText(connected, about?.indicators_title, isRTL ? 'أنواع المؤشرات' : 'Types of Indicators')
+  const indicators = connected && about?.indicators?.length ? about.indicators : DEFAULT_INDICATORS
+  const disclaimerTitle = cmsText(connected, about?.disclaimer_title, isRTL ? 'حدود البيانات والتنويه' : 'Data Limits & Disclaimer')
+  const disclaimerItems = connected && about?.disclaimer_items?.length ? about.disclaimer_items : DEFAULT_DISCLAIMER_ITEMS
+
+  const dashboardsBadge = cmsText(connected, dashboards?.badge, isRTL ? 'لوحات البيانات التفاعلية' : 'Interactive Dashboards')
+  const dashboardsTitle = cmsText(connected, dashboards?.title, isRTL ? 'تحليل البيانات الشامل' : 'Comprehensive Data Analysis')
+  const dashboardsStatusBadge = cmsText(connected, dashboards?.status_badge, isRTL ? 'يُحدَّث دورياً' : 'Updated periodically')
+  const platformChartTitle = cmsText(connected, dashboards?.platform_title, isRTL ? 'توزيع الحالات حسب المنصة' : 'Cases by Platform')
+  const genderChartTitle = cmsText(connected, dashboards?.gender_title, isRTL ? 'توزيع الحالات حسب الجنس' : 'Cases by Gender')
+  const trendChartTitle = cmsText(connected, dashboards?.trend_title, isRTL ? 'الاتجاه الزمني الشهري (2024)' : 'Monthly Time Trend (2024)')
+  const governorateChartTitle = cmsText(connected, dashboards?.governorate_title, isRTL ? 'توزيع الحالات الجغرافي (حسب المحافظة)' : 'Geographic Distribution by Governorate')
+  const comparisonNote = cmsText(connected, dashboards?.comparison_note, isRTL
+    ? 'تُظهر البيانات ارتفاعاً ملحوظاً في حالات خطاب الكراهية خلال الربع الأخير من 2024 بنسبة 18% مقارنةً بالربع ذاته من 2023، مع تصاعد واضح في منصات الفيديو القصير.'
+    : 'Data shows a notable 18% increase in hate speech cases during Q4 2024 compared to the same quarter in 2023, with a clear surge on short-video platforms.')
+
+  const reportsBadge = cmsText(connected, reportsSection?.badge, isRTL ? 'أرشيف التقارير' : 'Reports Archive')
+  const reportsTitle = cmsText(connected, reportsSection?.title, isRTL ? 'تقارير المرصد الدورية' : 'Periodic Observatory Reports')
+
+  const reportFormBadge = cmsText(connected, reportForm?.badge, isRTL ? 'الإبلاغ عن حالة' : 'Report a Case')
+  const reportFormTitle = cmsText(connected, reportForm?.title, isRTL ? 'نموذج الإبلاغ عن حالة عنف رقمي' : 'Digital Violence Incident Report Form')
+  const reportFormIntro = cmsText(connected, reportForm?.subtitle, isRTL
+    ? 'إذا تعرضت أو شهدت حالة خطاب كراهية أو عنف رقمي، أبلغنا بها. يمكنك الإبلاغ بشكل مجهول، وسنعمل على توثيق الحالة ومتابعتها.'
+    : 'If you have experienced or witnessed a hate speech or digital violence incident, report it to us. You can report anonymously and we will document and follow up on the case.')
+  const afterReportTitle = cmsText(connected, reportForm?.after_report_title, isRTL ? 'ماذا يحدث بعد الإبلاغ؟' : 'What Happens After Reporting?')
+  const afterReportSteps = connected && reportForm?.after_report_steps?.length ? reportForm.after_report_steps : DEFAULT_AFTER_REPORT_STEPS
+  const privacyTitle = cmsText(connected, reportForm?.privacy_title, isRTL ? 'خصوصيتك محمية' : 'Your Privacy is Protected')
+  const privacyText = cmsText(connected, reportForm?.privacy_text, isRTL
+    ? 'جميع البلاغات تُعامَل بسرية تامة. بياناتك الشخصية لن تُكشَف أو تُشارَك مع أي جهة خارجية.'
+    : 'All reports are treated with complete confidentiality. Your personal data will never be revealed or shared with any external party.')
+
   const ArrowBack = isRTL ? ArrowRight : ArrowLeft
   const ArrowFwd = isRTL ? ArrowLeft : ArrowRight
 
@@ -156,52 +299,58 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
     },
   }[variant]
 
-  const navLinks = [
-    { href: '#about',      label: isRTL ? 'نبذة عن المرصد' : 'About' },
-    { href: '#dashboards', label: isRTL ? 'لوحات البيانات' : 'Dashboards' },
-    { href: '#reports',    label: isRTL ? 'تقارير المرصد' : 'Reports' },
-    { href: '#report',     label: isRTL ? 'أبلغ عن حالة' : 'Report Incident' },
-  ]
+  const navLinks = sectionOrder
+    .filter((key) => observatorySectionVisible(pageCms, connected, key))
+    .map((key) => {
+      const section = pageCms?.sections?.[key]
+      const defaultLabels: Record<ObservatoryPageSectionKey, { ar: string; en: string }> = {
+        about: { ar: 'نبذة عن المرصد', en: 'About' },
+        dashboards: { ar: 'لوحات البيانات', en: 'Dashboards' },
+        reports: { ar: 'تقارير المرصد', en: 'Reports' },
+        report_form: { ar: 'أبلغ عن حالة', en: 'Report Incident' },
+      }
+      const label = connected && section?.badge
+        ? section.badge
+        : defaultLabels[key][isRTL ? 'ar' : 'en']
 
-  const classifications = [
-    { icon: AlertTriangle, color: '#FA382E', ar: 'خطاب الكراهية', en: 'Hate Speech', desc: { ar: 'أي محتوى يحرّض على الكراهية أو التمييز بسبب الجنس أو الدين أو الأصل', en: 'Content inciting hatred or discrimination based on gender, religion, or origin' } },
-    { icon: Shield, color: '#8b5cf6', ar: 'العنف الرقمي', en: 'Digital Violence', desc: { ar: 'التهديد والابتزاز والمضايقة الإلكترونية والتحرش عبر الإنترنت', en: 'Threats, blackmail, electronic harassment, and online stalking' } },
-    { icon: Eye, color: '#f59e0b', ar: 'التشهير والإيذاء', en: 'Defamation & Harm', desc: { ar: 'نشر معلومات كاذبة أو مسيئة بهدف الإضرار بالسمعة', en: 'Spreading false or harmful information to damage reputation' } },
-    { icon: Users, color: '#0ea5e9', ar: 'انتحال الشخصية', en: 'Impersonation', desc: { ar: 'إنشاء حسابات مزيفة أو التظاهر بهوية شخص آخر', en: 'Creating fake accounts or pretending to be another person' } },
-  ]
-
-  const methodSteps = [
-    { num: '01', ar: 'الرصد', en: 'Monitoring', desc: { ar: 'مراقبة منصات التواصل على مدار الساعة بأدوات متخصصة وبلاغات المجتمع', en: 'Continuous monitoring of social media platforms using specialized tools and community reports' } },
-    { num: '02', ar: 'التوثيق', en: 'Documentation', desc: { ar: 'توثيق الحالات بمعايير موحدة وحفظها في قاعدة بيانات آمنة', en: 'Documenting cases with unified standards and saving them in a secure database' } },
-    { num: '03', ar: 'التحليل', en: 'Analysis', desc: { ar: 'تحليل الأنماط والتوجهات وتصنيف الحالات حسب النوع والمنصة والفئة', en: 'Analyzing patterns and trends, classifying cases by type, platform, and group' } },
-    { num: '04', ar: 'التقرير', en: 'Reporting', desc: { ar: 'إصدار تقارير دورية بالنتائج مع توصيات قابلة للتطبيق', en: 'Publishing periodic reports with findings and actionable recommendations' } },
-  ]
+      return {
+        href: `#${OBSERVATORY_SECTION_ANCHORS[key]}`,
+        label,
+      }
+    })
 
   /* ─── RENDER ─── */
   const isDark = variant === 'dark'
   const isClassic = variant === 'classic'
+  const useFullPageVideo = isDark && heroVideoUrl
 
   return (
-    <>
+    <div className="relative w-full">
+      {useFullPageVideo && (
+        <ObservatoryHeroBackground videoUrl={heroVideoUrl} fixed />
+      )}
+
+      <div className="relative z-[2] w-full">
       {/* ─── HERO ─── */}
       {isDark ? (
-        <div className="relative min-h-[55vh] overflow-hidden bg-primary-900 flex items-end">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900" />
-          <div className="absolute inset-0 opacity-10">
-            <Image src="https://picsum.photos/seed/werise-obs-hero/1400/700" alt="" fill className="object-cover blur-2xl scale-110" sizes="100vw" priority />
-          </div>
+        <div className="relative min-h-[55vh] overflow-hidden flex items-end">
+          {!heroVideoUrl && (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900" />
+          )}
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(250,56,46,0.12) 0%, transparent 70%)' }} />
           <div className="relative z-10 container-wide pb-14 pt-24 w-full">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-secondary-500 animate-pulse" />
-              <span className="text-xs font-black text-secondary-400 uppercase tracking-widest">{isRTL ? 'يعمل الآن' : 'Live Monitoring'}</span>
+              <span className="text-xs font-black text-secondary-400 uppercase tracking-widest">{heroBadge}</span>
             </div>
             <h1 className="text-white text-3xl md:text-5xl font-black leading-tight max-w-3xl mb-4">
-              {isRTL ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence'}
+              {heroTitle}
             </h1>
-            <p className="text-white/60 text-base md:text-lg max-w-2xl mb-8">
-              {isRTL ? 'نرصد ونوثق ونحلل حالات خطاب الكراهية والعنف الرقمي عبر المنصات الرقمية في الأردن، لبناء بيئة رقمية آمنة ومحمية.' : 'We monitor, document, and analyze hate speech and digital violence cases across digital platforms in Jordan, building a safe and protected digital environment.'}
-            </p>
+            {heroSubtitle && (
+              <p className="text-white/60 text-base md:text-lg max-w-2xl mb-8">
+                {heroSubtitle}
+              </p>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { val: stats.totalCases.toLocaleString(), label: isRTL ? 'حالة موثقة' : 'Documented Cases', cls: 'text-white' },
@@ -219,39 +368,50 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
         </div>
       ) : isClassic ? (
         <div className="relative h-80 md:h-[420px] overflow-hidden bg-primary-900">
-          <Image src="https://picsum.photos/seed/werise-obs-hero/1400/700" alt="" fill className="object-cover opacity-30" priority sizes="100vw" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/60 to-transparent" />
-          <div className="absolute inset-0 flex flex-col justify-end container-wide pb-10">
+          <ObservatoryHeroBackground
+            videoUrl={heroVideoUrl}
+            overlayClassName="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/60 to-transparent"
+          />
+          {!heroVideoUrl && (
+            <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/60 to-transparent" />
+          )}
+          <div className="absolute inset-0 flex flex-col justify-end container-wide pb-10 z-10">
             <div className="inline-flex items-center gap-1.5 bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs font-bold px-3 py-1.5 rounded-full w-fit mb-4">
               <div className="w-1.5 h-1.5 rounded-full bg-secondary-400 animate-pulse" />
-              {isRTL ? 'يعمل الآن' : 'Live Monitoring'}
+              {heroBadge}
             </div>
             <h1 className="text-white text-2xl md:text-4xl font-black leading-tight max-w-3xl">
-              {isRTL ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence'}
+              {heroTitle}
             </h1>
           </div>
         </div>
       ) : (
         /* LIGHT hero */
         <div className="relative min-h-[52vh] overflow-hidden flex items-end" style={{ background: 'linear-gradient(135deg, #f8f9ff 0%, #ffffff 40%, #f9f9ff 100%)' }}>
-          <div className="absolute inset-0 opacity-5">
-            <Image src="https://picsum.photos/seed/werise-obs-hero/1400/700" alt="" fill className="object-cover blur-3xl scale-110" sizes="100vw" priority />
-          </div>
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -start-20 w-80 h-80 rounded-full bg-primary-100/30 blur-3xl" />
-            <div className="absolute top-1/3 -end-16 w-72 h-72 rounded-full bg-secondary-100/20 blur-3xl" />
-          </div>
+          {heroVideoUrl ? (
+            <ObservatoryHeroBackground
+              videoUrl={heroVideoUrl}
+              overlayClassName="absolute inset-0 bg-white/75"
+            />
+          ) : (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute -top-20 -start-20 w-80 h-80 rounded-full bg-primary-100/30 blur-3xl" />
+              <div className="absolute top-1/3 -end-16 w-72 h-72 rounded-full bg-secondary-100/20 blur-3xl" />
+            </div>
+          )}
           <div className="relative z-10 container-wide pb-14 pt-24 w-full">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-secondary-500 animate-pulse" />
-              <span className="text-xs font-black text-secondary-500 uppercase tracking-widest">{isRTL ? 'يعمل الآن' : 'Live Monitoring'}</span>
+              <span className="text-xs font-black text-secondary-500 uppercase tracking-widest">{heroBadge}</span>
             </div>
             <h1 className="text-primary-900 text-3xl md:text-5xl font-black leading-tight max-w-3xl mb-4">
-              {isRTL ? 'المرصد الرقمي لخطاب الكراهية والعنف الرقمي' : 'Digital Observatory for Hate Speech & Digital Violence'}
+              {heroTitle}
             </h1>
-            <p className="text-neutral-600 text-base md:text-lg max-w-2xl mb-8">
-              {isRTL ? 'نرصد ونوثق ونحلل حالات خطاب الكراهية والعنف الرقمي عبر المنصات الرقمية في الأردن.' : 'We monitor, document, and analyze hate speech and digital violence cases across digital platforms in Jordan.'}
-            </p>
+            {heroSubtitle && (
+              <p className="text-neutral-600 text-base md:text-lg max-w-2xl mb-8">
+                {heroSubtitle}
+              </p>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { val: stats.totalCases.toLocaleString(), label: isRTL ? 'حالة موثقة' : 'Cases', bg: 'bg-primary-50 border-primary-100', txt: 'text-primary-700' },
@@ -279,7 +439,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
       </div>
 
       {/* ─── MAIN BODY ─── */}
-      <div className={`relative min-h-screen ${isClassic ? 'bg-gradient-to-br from-primary-50 via-white to-secondary-50/30' : isDark ? 'bg-primary-900' : 'bg-neutral-50'}`}>
+      <div className={`relative ${isClassic ? 'bg-gradient-to-br from-primary-50 via-white to-secondary-50/30' : isDark ? (heroVideoUrl ? '' : 'bg-primary-900') : 'bg-neutral-50'}`}>
         {/* Blobs */}
         {!isDark && (
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -288,20 +448,18 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
           </div>
         )}
 
-        <div className="relative container-wide py-12 space-y-16">
+        <div className="relative container-wide py-12 pb-16 flex flex-col gap-16">
 
-          {/* ══════════════════════════════════════════
-              SECTION 1 — ABOUT
-          ══════════════════════════════════════════ */}
-          <section id="about" className="scroll-mt-24 space-y-10">
+          {observatorySectionVisible(pageCms, connected, 'about') && (
+          <section id="about" style={{ order: sectionOrder.indexOf('about') }} className="scroll-mt-24 space-y-10">
             {/* Section header */}
             <div>
               <div className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest mb-3 ${isDark ? 'text-secondary-400' : 'text-primary-500'}`}>
                 <div className={`w-6 h-0.5 rounded-full ${isDark ? 'bg-secondary-400' : 'bg-primary-500'}`} />
-                {isRTL ? 'نبذة عن المرصد' : 'About the Observatory'}
+                {aboutBadge}
               </div>
               <h2 className={`text-2xl md:text-3xl font-black ${V.heading}`}>
-                {isRTL ? 'ما هو المرصد الرقمي؟' : 'What is the Digital Observatory?'}
+                {aboutTitle}
               </h2>
             </div>
 
@@ -311,22 +469,18 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-primary-500/10">
                   <Target className="w-5 h-5 text-primary-500" />
                 </div>
-                <h3 className={`text-lg font-black mb-3 ${V.heading}`}>{isRTL ? 'هدف المرصد' : 'Observatory Goal'}</h3>
+                <h3 className={`text-lg font-black mb-3 ${V.heading}`}>{goalTitle}</h3>
                 <p className={`text-sm leading-relaxed ${V.sub}`}>
-                  {isRTL
-                    ? 'رصد وتوثيق وتحليل حالات خطاب الكراهية والعنف الرقمي الموجهة ضد الأفراد والمجتمعات عبر منصات التواصل الاجتماعي في الأردن، بهدف دعم السياسات الرقمية وتعزيز الحماية القانونية.'
-                    : 'Monitor, document, and analyze hate speech and digital violence cases targeting individuals and communities on social media in Jordan, to support digital policies and strengthen legal protections.'}
+                  {goalText}
                 </p>
               </div>
               <div className={`rounded-3xl p-7 ${V.card}`}>
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-secondary-500/10">
                   <Scale className="w-5 h-5 text-secondary-500" />
                 </div>
-                <h3 className={`text-lg font-black mb-3 ${V.heading}`}>{isRTL ? 'دور المرصد' : 'Observatory Role'}</h3>
+                <h3 className={`text-lg font-black mb-3 ${V.heading}`}>{roleTitle}</h3>
                 <p className={`text-sm leading-relaxed ${V.sub}`}>
-                  {isRTL
-                    ? 'يعمل المرصد على تقديم بيانات موثوقة للجهات الحكومية والمجتمع المدني والباحثين والإعلاميين، لتعزيز المساءلة الرقمية والاستجابة الفعّالة لظاهرة العنف الإلكتروني.'
-                    : 'The observatory provides reliable data to government entities, civil society, researchers, and journalists to enhance digital accountability and effective response to online violence.'}
+                  {roleText}
                 </p>
               </div>
             </div>
@@ -336,14 +490,14 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-blue-500/10">
                 <Microscope className="w-5 h-5 text-blue-500" />
               </div>
-              <h3 className={`text-lg font-black mb-6 ${V.heading}`}>{isRTL ? 'المنهجية المعتمدة' : 'Adopted Methodology'}</h3>
+              <h3 className={`text-lg font-black mb-6 ${V.heading}`}>{methodologyTitle}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-                {methodSteps.map(step => (
-                  <div key={step.num} className="flex flex-col gap-3">
+                {methodologySteps.map((step, index) => (
+                  <div key={step.num ?? String(index)} className="flex flex-col gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-primary-500 flex items-center justify-center text-white font-black text-sm shrink-0">{step.num}</div>
                     <div>
-                      <div className={`font-black text-sm mb-1 ${V.heading}`}>{isRTL ? step.ar : step.en}</div>
-                      <p className={`text-xs leading-relaxed ${V.sub}`}>{step.desc[locale as Locale]}</p>
+                      <div className={`font-black text-sm mb-1 ${V.heading}`}>{step.title}</div>
+                      <p className={`text-xs leading-relaxed ${V.sub}`}>{step.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -355,18 +509,19 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-purple-500/10">
                 <Layers className="w-5 h-5 text-purple-500" />
               </div>
-              <h3 className={`text-lg font-black mb-6 ${V.heading}`}>{isRTL ? 'التصنيفات المعتمدة' : 'Adopted Classifications'}</h3>
+              <h3 className={`text-lg font-black mb-6 ${V.heading}`}>{classificationsTitle}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {classifications.map(cls => {
-                  const Icon = cls.icon
+                {classifications.map((cls, index) => {
+                  const Icon = CLASSIFICATION_ICONS[cls.id ?? ''] ?? AlertTriangle
+                  const color = cls.color ?? '#FA382E'
                   return (
-                    <div key={cls.en} className={`flex gap-4 rounded-2xl p-5 ${isDark ? 'bg-white/5' : 'bg-neutral-50'} border ${V.divider}`}>
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cls.color + '20' }}>
-                        <Icon className="w-4 h-4" style={{ color: cls.color }} />
+                    <div key={cls.id ?? String(index)} className={`flex gap-4 rounded-2xl p-5 ${isDark ? 'bg-white/5' : 'bg-neutral-50'} border ${V.divider}`}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: color + '20' }}>
+                        <Icon className="w-4 h-4" style={{ color }} />
                       </div>
                       <div>
-                        <div className={`font-black text-sm mb-1 ${V.heading}`}>{isRTL ? cls.ar : cls.en}</div>
-                        <p className={`text-xs leading-relaxed ${V.sub}`}>{cls.desc[locale as Locale]}</p>
+                        <div className={`font-black text-sm mb-1 ${V.heading}`}>{cls.title}</div>
+                        <p className={`text-xs leading-relaxed ${V.sub}`}>{cls.desc}</p>
                       </div>
                     </div>
                   )
@@ -380,26 +535,12 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-green-500/10">
                   <Activity className="w-5 h-5 text-green-500" />
                 </div>
-                <h3 className={`text-lg font-black mb-4 ${V.heading}`}>{isRTL ? 'أنواع المؤشرات' : 'Types of Indicators'}</h3>
+                <h3 className={`text-lg font-black mb-4 ${V.heading}`}>{indicatorsTitle}</h3>
                 <ul className="space-y-2.5">
-                  {(isRTL ? [
-                    'عدد الحالات الإجمالية والنوعية',
-                    'توزيع جغرافي ونوعي للحالات',
-                    'الاتجاه الزمني الشهري والربعي',
-                    'توزيع الحالات حسب المنصة',
-                    'الفئات المستهدفة الأكثر عرضة',
-                    'مقارنة زمنية بين الفترات',
-                  ] : [
-                    'Total and categorized case counts',
-                    'Geographic and gender case distribution',
-                    'Monthly and quarterly time trends',
-                    'Case distribution by platform',
-                    'Most targeted demographic groups',
-                    'Temporal comparison across periods',
-                  ]).map((item, i) => (
+                  {indicators.map((item, i) => (
                     <li key={i} className={`flex items-start gap-2.5 text-sm ${V.sub}`}>
                       <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mt-1.5" />
-                      {item}
+                      {item.text}
                     </li>
                   ))}
                 </ul>
@@ -408,47 +549,34 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-amber-500/15">
                   <Info className="w-5 h-5 text-amber-500" />
                 </div>
-                <h3 className={`text-lg font-black mb-4 ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>{isRTL ? 'حدود البيانات والتنويه' : 'Data Limits & Disclaimer'}</h3>
+                <h3 className={`text-lg font-black mb-4 ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>{disclaimerTitle}</h3>
                 <ul className="space-y-2.5">
-                  {(isRTL ? [
-                    'البيانات المعروضة تمثل الحالات الموثقة فقط، ولا تعكس الصورة الكاملة للظاهرة.',
-                    'لا يمكن التحقق من جميع البلاغات المقدمة بشكل مستقل.',
-                    'تُستخدم البيانات لأغراض بحثية وتوعوية فقط.',
-                    'لا يُعدّ المرصد جهة قانونية للملاحقة القضائية.',
-                    'الأسماء والمعلومات الشخصية تُحذف قبل النشر.',
-                  ] : [
-                    'Data represents documented cases only and does not reflect the full extent of the phenomenon.',
-                    'Not all submitted reports can be independently verified.',
-                    'Data is used for research and awareness purposes only.',
-                    'The observatory is not a legal entity for prosecution.',
-                    'Personal names and information are removed before publication.',
-                  ]).map((item, i) => (
+                  {disclaimerItems.map((item, i) => (
                     <li key={i} className={`flex items-start gap-2.5 text-sm ${isDark ? 'text-amber-200/70' : 'text-amber-800'}`}>
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
-                      {item}
+                      {item.text}
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
           </section>
+          )}
 
-          {/* ══════════════════════════════════════════
-              SECTION 2 — DASHBOARDS
-          ══════════════════════════════════════════ */}
-          <section id="dashboards" className="scroll-mt-24 space-y-8">
+          {observatorySectionVisible(pageCms, connected, 'dashboards') && (
+          <section id="dashboards" style={{ order: sectionOrder.indexOf('dashboards') }} className="scroll-mt-24 space-y-8">
             <div>
               <div className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest mb-3 ${isDark ? 'text-secondary-400' : 'text-primary-500'}`}>
                 <div className={`w-6 h-0.5 rounded-full ${isDark ? 'bg-secondary-400' : 'bg-primary-500'}`} />
-                {isRTL ? 'لوحات البيانات التفاعلية' : 'Interactive Dashboards'}
+                {dashboardsBadge}
               </div>
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <h2 className={`text-2xl md:text-3xl font-black ${V.heading}`}>
-                  {isRTL ? 'تحليل البيانات الشامل' : 'Comprehensive Data Analysis'}
+                  {dashboardsTitle}
                 </h2>
                 <div className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full ${V.badge}`}>
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  {isRTL ? 'يُحدَّث دورياً' : 'Updated periodically'}
+                  {dashboardsStatusBadge}
                 </div>
               </div>
             </div>
@@ -480,7 +608,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                   <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center">
                     <BarChart2 className="w-4 h-4 text-primary-500" />
                   </div>
-                  <h3 className={`font-black text-base ${V.heading}`}>{isRTL ? 'توزيع الحالات حسب المنصة' : 'Cases by Platform'}</h3>
+                  <h3 className={`font-black text-base ${V.heading}`}>{platformChartTitle}</h3>
                 </div>
                 <div className={`space-y-4 text-sm ${V.sub}`}>
                   {stats.platformDistribution.map(({ platform, count }) => (
@@ -495,7 +623,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                   <div className="w-9 h-9 rounded-xl bg-secondary-500/10 flex items-center justify-center">
                     <Users className="w-4 h-4 text-secondary-500" />
                   </div>
-                  <h3 className={`font-black text-base ${V.heading}`}>{isRTL ? 'توزيع الحالات حسب الجنس' : 'Cases by Gender'}</h3>
+                  <h3 className={`font-black text-base ${V.heading}`}>{genderChartTitle}</h3>
                 </div>
                 <div className={`space-y-4 text-sm ${V.sub}`}>
                   {stats.genderDistribution.map(({ gender, count, label }) => {
@@ -537,7 +665,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                 <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-blue-500" />
                 </div>
-                <h3 className={`font-black text-base ${V.heading}`}>{isRTL ? 'الاتجاه الزمني الشهري (2024)' : 'Monthly Time Trend (2024)'}</h3>
+                <h3 className={`font-black text-base ${V.heading}`}>{trendChartTitle}</h3>
               </div>
               {/* Legend */}
               <div className="flex items-center gap-5 mb-5">
@@ -563,7 +691,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
                   <MapPin className="w-4 h-4 text-amber-500" />
                 </div>
-                <h3 className={`font-black text-base ${V.heading}`}>{isRTL ? 'توزيع الحالات الجغرافي (حسب المحافظة)' : 'Geographic Distribution by Governorate'}</h3>
+                <h3 className={`font-black text-base ${V.heading}`}>{governorateChartTitle}</h3>
               </div>
               <div className={`grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-4 text-sm ${V.sub}`}>
                 {stats.governorateDistribution.map(({ governorate, count, label }) => (
@@ -576,24 +704,21 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
             <div className={`rounded-2xl p-5 flex items-start gap-3 ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-100'}`}>
               <Clock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
               <p className={`text-sm ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
-                {isRTL
-                  ? 'تُظهر البيانات ارتفاعاً ملحوظاً في حالات خطاب الكراهية خلال الربع الأخير من 2024 بنسبة 18% مقارنةً بالربع ذاته من 2023، مع تصاعد واضح في منصات الفيديو القصير.'
-                  : 'Data shows a notable 18% increase in hate speech cases during Q4 2024 compared to the same quarter in 2023, with a clear surge on short-video platforms.'}
+                {comparisonNote}
               </p>
             </div>
           </section>
+          )}
 
-          {/* ══════════════════════════════════════════
-              SECTION 3 — REPORTS
-          ══════════════════════════════════════════ */}
-          <section id="reports" className="scroll-mt-24 space-y-8">
+          {observatorySectionVisible(pageCms, connected, 'reports') && (
+          <section id="reports" style={{ order: sectionOrder.indexOf('reports') }} className="scroll-mt-24 space-y-8">
             <div>
               <div className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest mb-3 ${isDark ? 'text-secondary-400' : 'text-primary-500'}`}>
                 <div className={`w-6 h-0.5 rounded-full ${isDark ? 'bg-secondary-400' : 'bg-primary-500'}`} />
-                {isRTL ? 'أرشيف التقارير' : 'Reports Archive'}
+                {reportsBadge}
               </div>
               <h2 className={`text-2xl md:text-3xl font-black ${V.heading}`}>
-                {isRTL ? 'تقارير المرصد الدورية' : 'Periodic Observatory Reports'}
+                {reportsTitle}
               </h2>
             </div>
 
@@ -630,23 +755,20 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
               ))}
             </div>
           </section>
+          )}
 
-          {/* ══════════════════════════════════════════
-              SECTION 4 — REPORT FORM
-          ══════════════════════════════════════════ */}
-          <section id="report" className="scroll-mt-24 space-y-8">
+          {observatorySectionVisible(pageCms, connected, 'report_form') && (
+          <section id="report" style={{ order: sectionOrder.indexOf('report_form') }} className="scroll-mt-24 space-y-8">
             <div>
               <div className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest mb-3 ${isDark ? 'text-secondary-400' : 'text-primary-500'}`}>
                 <div className={`w-6 h-0.5 rounded-full ${isDark ? 'bg-secondary-400' : 'bg-primary-500'}`} />
-                {isRTL ? 'الإبلاغ عن حالة' : 'Report a Case'}
+                {reportFormBadge}
               </div>
               <h2 className={`text-2xl md:text-3xl font-black ${V.heading}`}>
-                {isRTL ? 'نموذج الإبلاغ عن حالة عنف رقمي' : 'Digital Violence Incident Report Form'}
+                {reportFormTitle}
               </h2>
               <p className={`mt-2 max-w-2xl ${V.sub}`}>
-                {isRTL
-                  ? 'إذا تعرضت أو شهدت حالة خطاب كراهية أو عنف رقمي، أبلغنا بها. يمكنك الإبلاغ بشكل مجهول، وسنعمل على توثيق الحالة ومتابعتها.'
-                  : 'If you have experienced or witnessed a hate speech or digital violence incident, report it to us. You can report anonymously and we will document and follow up on the case.'}
+                {reportFormIntro}
               </p>
             </div>
 
@@ -660,29 +782,20 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                   headingCls={V.heading}
                   accentColor={V.accent}
                   btnCls={V.btn}
+                  isDark={isDark}
                 />
               </div>
               {/* Sidebar info */}
               <div className="space-y-5">
                 <div className={`rounded-3xl p-6 ${V.card}`}>
-                  <h3 className={`font-black text-base mb-4 ${V.heading}`}>{isRTL ? 'ماذا يحدث بعد الإبلاغ؟' : 'What Happens After Reporting?'}</h3>
+                  <h3 className={`font-black text-base mb-4 ${V.heading}`}>{afterReportTitle}</h3>
                   <ol className="space-y-4">
-                    {(isRTL ? [
-                      { n: '1', t: 'استلام البلاغ', d: 'تُولَّد رقم مرجعي فوري لمتابعة حالتك' },
-                      { n: '2', t: 'المراجعة', d: 'يراجع الفريق المتخصص البلاغ خلال 48 ساعة' },
-                      { n: '3', t: 'التوثيق', d: 'توثيق الحالة ضمن قاعدة بيانات المرصد' },
-                      { n: '4', t: 'الاستجابة', d: 'اتخاذ الإجراءات المناسبة حسب طبيعة الحالة' },
-                    ] : [
-                      { n: '1', t: 'Report Received', d: 'An instant reference number is generated for tracking' },
-                      { n: '2', t: 'Review', d: 'The specialized team reviews the report within 48 hours' },
-                      { n: '3', t: 'Documentation', d: 'Case is documented in the observatory database' },
-                      { n: '4', t: 'Response', d: 'Appropriate actions taken based on case nature' },
-                    ]).map(step => (
-                      <li key={step.n} className="flex gap-3">
-                        <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-black shrink-0 mt-0.5">{step.n}</div>
+                    {afterReportSteps.map((step, index) => (
+                      <li key={index} className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-black shrink-0 mt-0.5">{index + 1}</div>
                         <div>
-                          <div className={`text-sm font-black ${V.heading}`}>{step.t}</div>
-                          <div className={`text-xs mt-0.5 ${V.sub}`}>{step.d}</div>
+                          <div className={`text-sm font-black ${V.heading}`}>{step.title}</div>
+                          <div className={`text-xs mt-0.5 ${V.sub}`}>{step.desc}</div>
                         </div>
                       </li>
                     ))}
@@ -690,21 +803,21 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                 </div>
                 <div className={`rounded-3xl p-6 ${isDark ? 'bg-secondary-500/10 border border-secondary-500/20' : 'bg-secondary-50 border border-secondary-100'}`}>
                   <Shield className={`w-6 h-6 mb-3 ${isDark ? 'text-secondary-400' : 'text-secondary-500'}`} />
-                  <h3 className={`font-black text-sm mb-2 ${isDark ? 'text-secondary-300' : 'text-secondary-800'}`}>{isRTL ? 'خصوصيتك محمية' : 'Your Privacy is Protected'}</h3>
+                  <h3 className={`font-black text-sm mb-2 ${isDark ? 'text-secondary-300' : 'text-secondary-800'}`}>{privacyTitle}</h3>
                   <p className={`text-xs leading-relaxed ${isDark ? 'text-secondary-200/60' : 'text-secondary-700'}`}>
-                    {isRTL
-                      ? 'جميع البلاغات تُعامَل بسرية تامة. بياناتك الشخصية لن تُكشَف أو تُشارَك مع أي جهة خارجية.'
-                      : 'All reports are treated with complete confidentiality. Your personal data will never be revealed or shared with any external party.'}
+                    {privacyText}
                   </p>
                 </div>
               </div>
             </div>
           </section>
+          )}
 
         </div>
       </div>
 
       <DesignSwitcher darkHref={darkHref} lightHref={lightHref} classicHref={classicHref} current={variant} isRTL={isRTL} />
-    </>
+      </div>
+    </div>
   )
 }

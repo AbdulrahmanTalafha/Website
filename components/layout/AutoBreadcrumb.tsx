@@ -40,6 +40,7 @@ export default function AutoBreadcrumb() {
 
   const isRTL = locale === 'ar'
   const Chevron = isRTL ? ChevronLeft : ChevronRight
+  const isDarkPage = pathSegments[0] === 'digital-observatory'
 
   const items: { label: string; href: string; current: boolean }[] = []
   pathSegments.forEach((seg, i) => {
@@ -74,7 +75,11 @@ export default function AutoBreadcrumb() {
       />
       <nav
         aria-label={isRTL ? 'مسار التنقل' : 'Breadcrumb'}
-        className="bg-white border-b border-neutral-100"
+        className={`relative z-[2] border-b ${
+          isDarkPage
+            ? 'bg-primary-900/80 border-white/10 backdrop-blur-sm'
+            : 'bg-white border-neutral-100'
+        }`}
       >
         <ol
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 h-10 text-xs overflow-hidden"
@@ -84,7 +89,11 @@ export default function AutoBreadcrumb() {
           <li className="flex items-center shrink-0" itemScope itemType="https://schema.org/ListItem" itemProp="itemListElement">
             <Link
               href={`/${locale}`}
-              className="flex items-center text-neutral-400 hover:text-primary-500 transition-colors"
+              className={`flex items-center transition-colors ${
+                isDarkPage
+                  ? 'text-white/50 hover:text-white'
+                  : 'text-neutral-400 hover:text-primary-500'
+              }`}
               aria-label={isRTL ? 'الرئيسية' : 'Home'}
               itemProp="item"
             >
@@ -102,10 +111,12 @@ export default function AutoBreadcrumb() {
               itemType="https://schema.org/ListItem"
               itemProp="itemListElement"
             >
-              <Chevron className="w-3 h-3 text-neutral-300 shrink-0" aria-hidden="true" />
+              <Chevron className={`w-3 h-3 shrink-0 ${isDarkPage ? 'text-white/30' : 'text-neutral-300'}`} aria-hidden="true" />
               {item.current ? (
                 <span
-                  className="text-primary-500 font-semibold truncate max-w-[200px]"
+                  className={`font-semibold truncate max-w-[200px] ${
+                    isDarkPage ? 'text-secondary-400' : 'text-primary-500'
+                  }`}
                   aria-current="page"
                   itemProp="name"
                 >
@@ -114,7 +125,11 @@ export default function AutoBreadcrumb() {
               ) : (
                 <Link
                   href={item.href}
-                  className="text-neutral-500 hover:text-primary-500 transition-colors truncate max-w-[160px]"
+                  className={`transition-colors truncate max-w-[160px] ${
+                    isDarkPage
+                      ? 'text-white/60 hover:text-white'
+                      : 'text-neutral-500 hover:text-primary-500'
+                  }`}
                   itemProp="item"
                 >
                   <span itemProp="name">{item.label}</span>

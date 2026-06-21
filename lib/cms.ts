@@ -482,6 +482,160 @@ export const getPartnersPageData = cache(async (locale: string): Promise<CmsPart
 })
 
 // ─────────────────────────────────────────────
+// Digital Observatory page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsObservatoryPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsObservatoryPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_video?: string | null
+}
+
+export interface CmsObservatoryMethodologyStep {
+  num?: string | null
+  title?: string | null
+  desc?: string | null
+}
+
+export interface CmsObservatoryClassification {
+  id?: string | null
+  title?: string | null
+  desc?: string | null
+  color?: string | null
+}
+
+export interface CmsObservatoryTextItem {
+  text?: string | null
+}
+
+export interface CmsObservatoryAboutSection {
+  key: string
+  is_visible: boolean
+  badge?: string | null
+  title?: string | null
+  goal_title?: string | null
+  goal_text?: string | null
+  role_title?: string | null
+  role_text?: string | null
+  methodology_title?: string | null
+  methodology_steps?: CmsObservatoryMethodologyStep[]
+  classifications_title?: string | null
+  classifications?: CmsObservatoryClassification[]
+  indicators_title?: string | null
+  indicators?: CmsObservatoryTextItem[]
+  disclaimer_title?: string | null
+  disclaimer_items?: CmsObservatoryTextItem[]
+}
+
+export interface CmsObservatoryDashboardsSection {
+  key: string
+  is_visible: boolean
+  badge?: string | null
+  title?: string | null
+  status_badge?: string | null
+  platform_title?: string | null
+  gender_title?: string | null
+  trend_title?: string | null
+  governorate_title?: string | null
+  comparison_note?: string | null
+}
+
+export interface CmsObservatoryReportsSection {
+  key: string
+  is_visible: boolean
+  badge?: string | null
+  title?: string | null
+}
+
+export interface CmsObservatoryReportStep {
+  title?: string | null
+  desc?: string | null
+}
+
+export interface CmsObservatoryReportFormSection {
+  key: string
+  is_visible: boolean
+  badge?: string | null
+  title?: string | null
+  subtitle?: string | null
+  after_report_title?: string | null
+  after_report_steps?: CmsObservatoryReportStep[]
+  privacy_title?: string | null
+  privacy_text?: string | null
+}
+
+export interface CmsObservatoryPageSections {
+  hero?: CmsObservatoryPageHeroSection
+  about?: CmsObservatoryAboutSection
+  dashboards?: CmsObservatoryDashboardsSection
+  reports?: CmsObservatoryReportsSection
+  report_form?: CmsObservatoryReportFormSection
+}
+
+export interface CmsObservatoryPageData {
+  page: CmsObservatoryPageMeta
+  sections: CmsObservatoryPageSections
+  sections_order?: string[]
+}
+
+export const getObservatoryPageData = cache(async (locale: string): Promise<CmsObservatoryPageData | null> => {
+  return fetchCms<CmsObservatoryPageData>(`/api/${locale}/observatory-page`)
+})
+
+export interface ObservatoryReportSubmissionResult {
+  reference_number: string
+}
+
+export interface ObservatoryReportSubmissionError {
+  message: string
+  errors?: Record<string, string[]>
+}
+
+export async function submitObservatoryReport(
+  formData: FormData,
+): Promise<{ ok: true; data: ObservatoryReportSubmissionResult } | { ok: false; error: ObservatoryReportSubmissionError }> {
+  try {
+    const res = await fetch(`${CMS_URL}/api/observatory-report-submissions`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    const payload = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: {
+          message: typeof payload?.message === 'string' ? payload.message : 'Submission failed',
+          errors: payload?.errors as Record<string, string[]> | undefined,
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      data: payload as ObservatoryReportSubmissionResult,
+    }
+  } catch {
+    return {
+      ok: false,
+      error: { message: 'Network error' },
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
 // Initiatives module API
 // ─────────────────────────────────────────────
 

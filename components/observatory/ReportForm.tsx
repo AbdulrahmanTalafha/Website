@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Shield, Upload, CheckCircle, AlertTriangle, X, Eye, EyeOff } from 'lucide-react'
+import { Shield, Upload, CheckCircle, AlertTriangle, X, Eye, EyeOff, Copy, Check } from 'lucide-react'
+import { submitObservatoryReport } from '@/lib/cms'
 
 type Locale = 'ar' | 'en'
 
@@ -13,6 +14,7 @@ interface Props {
   headingCls: string
   accentColor: string
   btnCls: string
+  isDark?: boolean
 }
 
 const CASE_TYPES = {
@@ -40,13 +42,7 @@ const TARGET_GROUPS = {
   en: ['Women', 'Religious Minorities', 'Refugees', 'LGBTQ+', 'Journalists', 'Activists', 'Other'],
 }
 
-function genRef(): string {
-  const yr = new Date().getFullYear()
-  const rnd = Math.floor(10000 + Math.random() * 90000)
-  return `WR-${yr}-${rnd}`
-}
-
-export default function ReportForm({ locale, cardCls, inputCls, labelCls, headingCls, accentColor, btnCls }: Props) {
+export default function ReportForm({ locale, cardCls, inputCls, labelCls, headingCls, accentColor, btnCls, isDark = false }: Props) {
   const isRTL = locale === 'ar'
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -61,10 +57,14 @@ export default function ReportForm({ locale, cardCls, inputCls, labelCls, headin
     phone: '',
   })
   const [files, setFiles] = useState<File[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const dragCounter = useRef(0)
   const [submitted, setSubmitted] = useState(false)
   const [refNum, setRefNum] = useState('')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value, type } = e.target
@@ -75,9 +75,44 @@ export default function ReportForm({ locale, cardCls, inputCls, labelCls, headin
     if (errors[name]) setErrors(er => ({ ...er, [name]: '' }))
   }
 
-  function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const newFiles = Array.from(e.target.files || []).slice(0, 5)
+  function addFiles(fileList: FileList | File[]) {
+    const newFiles = Array.from(fileList).slice(0, 5)
     setFiles(prev => [...prev, ...newFiles].slice(0, 5))
+  }
+
+  function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files?.length) addFiles(e.target.files)
+    e.target.value = ''
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  function handleDragEnter(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current += 1
+    setIsDragging(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current -= 1
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0
+      setIsDragging(false)
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current = 0
+    setIsDragging(false)
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files)
   }
 
   function removeFile(idx: number) {
@@ -101,40 +136,147 @@ export default function ReportForm({ locale, cardCls, inputCls, labelCls, headin
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
+
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1500))
-    const ref = genRef()
-    setRefNum(ref)
-    setSubmitted(true)
+    setSubmitError('')
+
+    const body = new FormData()
+    body.append('locale', locale)
+    body.append('description', form.description.trim())
+    body.append('case_type', form.caseType)
+    body.append('platform', form.platform)
+    if (form.targetGroup) body.append('target_group', form.targetGroup)
+    body.append('anonymous', form.anonymous ? '1' : '0')
+    if (!form.anonymous) {
+      if (form.name) body.append('name', form.name)
+      if (form.email) body.append('email', form.email)
+      if (form.phone) body.append('phone', form.phone)
+    }
+    files.forEach((file) => body.append('files[]', file))
+
+    const result = await submitObservatoryReport(body)
+
     setLoading(false)
+
+    if (!result.ok) {
+      const apiErrors = result.error.errors ?? {}
+      const mapped: Record<string, string> = {}
+      if (apiErrors.description?.[0]) mapped.description = apiErrors.description[0]
+      if (apiErrors.case_type?.[0]) mapped.caseType = apiErrors.case_type[0]
+      if (apiErrors.platform?.[0]) mapped.platform = apiErrors.platform[0]
+      if (apiErrors.email?.[0]) mapped.email = apiErrors.email[0]
+      if (Object.keys(mapped).length) {
+        setErrors(mapped)
+      } else {
+        setSubmitError(
+          isRTL
+            ? 'تعذّر إرسال البلاغ. يرجى المحاولة مرة أخرى.'
+            : result.error.message || 'Could not submit the report. Please try again.',
+        )
+      }
+      return
+    }
+
+    setRefNum(result.data.reference_number)
+    setSubmitted(true)
+  }
+
+  async function copyReference() {
+    try {
+      await navigator.clipboard.writeText(refNum)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard unavailable */
+    }
   }
 
   if (submitted) return (
-    <div className={`${cardCls} rounded-3xl p-10 text-center`}>
-      <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
-        <CheckCircle className="w-8 h-8 text-green-600" />
+    <div className={`${cardCls} relative overflow-hidden rounded-3xl p-8 sm:p-12 text-center`}>
+      <div
+        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background: isDark
+            ? 'radial-gradient(ellipse at 50% 0%, rgba(34, 197, 94, 0.14) 0%, transparent 55%)'
+            : 'radial-gradient(ellipse at 50% 0%, rgba(34, 197, 94, 0.12) 0%, transparent 55%)',
+        }}
+      />
+
+      <div className="relative z-10">
+        <div
+          className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full ring-4 ${
+            isDark
+              ? 'bg-green-500/15 ring-green-500/25 shadow-[0_0_40px_rgba(34,197,94,0.25)]'
+              : 'bg-green-100 ring-green-200/80 shadow-lg shadow-green-100'
+          }`}
+        >
+          <CheckCircle className={`h-10 w-10 ${isDark ? 'text-green-400' : 'text-green-600'}`} strokeWidth={2.25} />
+        </div>
+
+        <h3 className={`text-2xl sm:text-3xl font-black mb-3 leading-tight ${headingCls}`}>
+          {isRTL ? 'تم استلام البلاغ بنجاح' : 'Report Received Successfully'}
+        </h3>
+        <p className={`mb-8 max-w-md mx-auto text-sm sm:text-base leading-relaxed ${labelCls}`}>
+          {isRTL
+            ? 'شكرًا لإبلاغك. سيراجع فريقنا الحالة المُبلَّغ عنها قريبًا وسنتابع معك عند الحاجة.'
+            : 'Thank you for reporting. Our team will review the submitted case shortly and follow up if needed.'}
+        </p>
+
+        <div
+          className={`mx-auto max-w-sm rounded-2xl border p-6 mb-8 ${
+            isDark
+              ? 'border-green-500/30 bg-gradient-to-b from-green-500/10 to-green-500/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+              : 'border-green-200 bg-gradient-to-b from-green-50 to-white shadow-sm'
+          }`}
+        >
+          <span className={`text-[11px] font-black uppercase tracking-[0.14em] mb-2 block ${isDark ? 'text-green-400/90' : 'text-green-600'}`}>
+            {isRTL ? 'رقم المرجع الخاص بك' : 'Your Reference Number'}
+          </span>
+          <div className="flex items-center justify-center gap-2">
+            <span
+              className={`text-2xl sm:text-3xl font-black tracking-wider font-mono ${isDark ? 'text-green-300' : 'text-green-700'}`}
+              dir="ltr"
+            >
+              {refNum}
+            </span>
+            <button
+              type="button"
+              onClick={copyReference}
+              className={`shrink-0 rounded-lg p-2 transition-colors ${
+                isDark
+                  ? 'text-green-400/80 hover:bg-white/10 hover:text-green-300'
+                  : 'text-green-600 hover:bg-green-100'
+              }`}
+              aria-label={isRTL ? 'نسخ الرقم' : 'Copy reference number'}
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </button>
+          </div>
+          <span className={`text-xs mt-3 block ${isDark ? 'text-green-400/70' : 'text-green-600'}`}>
+            {copied
+              ? (isRTL ? 'تم نسخ الرقم' : 'Reference copied')
+              : (isRTL ? 'احتفظ بهذا الرقم للمتابعة' : 'Keep this number for follow-up')}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSubmitted(false)
+            setCopied(false)
+            setForm({ description: '', caseType: '', platform: '', targetGroup: '', anonymous: true, name: '', email: '', phone: '' })
+            setFiles([])
+          }}
+          className={`inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold transition-colors ${
+            isDark
+              ? 'text-white/70 hover:text-white hover:bg-white/10'
+              : 'text-primary-600 hover:bg-primary-50'
+          }`}
+        >
+          {isRTL ? 'الإبلاغ عن حالة أخرى' : 'Report another case'}
+        </button>
       </div>
-      <h3 className={`text-2xl font-black mb-3 ${headingCls}`}>
-        {isRTL ? 'تم استلام البلاغ بنجاح' : 'Report Received Successfully'}
-      </h3>
-      <p className={`mb-6 ${labelCls}`}>
-        {isRTL
-          ? 'شكرًا لإبلاغك. سيراجع فريقنا الحالة المُبلَّغ عنها قريبًا.'
-          : 'Thank you for reporting. Our team will review the submitted case shortly.'}
-      </p>
-      <div className="inline-flex flex-col items-center bg-green-50 border border-green-200 rounded-2xl px-8 py-5 mb-6">
-        <span className="text-xs text-green-600 font-bold uppercase tracking-wider mb-1">
-          {isRTL ? 'رقم المرجع الخاص بك' : 'Your Reference Number'}
-        </span>
-        <span className="text-3xl font-black text-green-700 tracking-wider font-mono">{refNum}</span>
-        <span className="text-xs text-green-500 mt-1">{isRTL ? 'احتفظ بهذا الرقم للمتابعة' : 'Keep this number for follow-up'}</span>
-      </div>
-      <button
-        onClick={() => { setSubmitted(false); setForm({ description: '', caseType: '', platform: '', targetGroup: '', anonymous: true, name: '', email: '', phone: '' }); setFiles([]) }}
-        className="text-sm font-bold underline opacity-60 hover:opacity-100 transition-opacity"
-      >
-        {isRTL ? 'الإبلاغ عن حالة أخرى' : 'Report Another Case'}
-      </button>
     </div>
   )
 
@@ -200,8 +342,22 @@ export default function ReportForm({ locale, cardCls, inputCls, labelCls, headin
           {isRTL ? 'صور أو ملفات داعمة (اختياري، حتى 5 ملفات)' : 'Supporting Screenshots or Files (optional, up to 5)'}
         </label>
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => fileRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${inputCls} hover:border-primary-400`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              fileRef.current?.click()
+            }
+          }}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${inputCls} hover:border-primary-400 ${
+            isDragging ? 'border-primary-400 bg-primary-500/10' : ''
+          }`}
         >
           <Upload className="w-6 h-6 mx-auto mb-2 opacity-40" />
           <p className={`text-sm ${labelCls}`}>{isRTL ? 'انقر لرفع ملفات أو اسحب وأفلت' : 'Click to upload files or drag & drop'}</p>
@@ -286,6 +442,10 @@ export default function ReportForm({ locale, cardCls, inputCls, labelCls, headin
             : 'All reports are reviewed by our specialized team. Aggregated data is used for statistical and research purposes only. Personal information is never shared with third parties.'}
         </p>
       </div>
+
+      {submitError && (
+        <p className="text-red-500 text-sm">{submitError}</p>
+      )}
 
       {/* Submit */}
       <button
