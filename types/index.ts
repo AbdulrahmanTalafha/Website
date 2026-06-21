@@ -255,6 +255,8 @@ export interface NewsItem {
   channel?: Record<Locale, string>      // TV channel name
   relatedProject?: string
   relatedPublication?: string
+  relatedNews?: string[]
+  includeSameCategoryRelated?: boolean
   tags?: Array<Record<Locale, string>>
   featured?: boolean
 }

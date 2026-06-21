@@ -4,7 +4,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
-import { getNews } from '@/lib/api'
+import { getNews, getNewsStats } from '@/lib/api'
+import { getMediaCenterPageData } from '@/lib/cms'
+import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
+import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { resolveMediaCenterPageSeo } from '@/lib/mediaCenterPageSeo'
 import {
   Newspaper, Activity, FileText, Tv2, Radio, PlaySquare,
   Rss, TrendingUp, Calendar, ExternalLink, ArrowUpRight,
@@ -18,18 +22,20 @@ interface PageProps {
   searchParams: Promise<{ v?: string; tab?: string }>
 }
 
+export const revalidate = 60
+
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
   const { v, tab } = await searchParams
-  const description = locale === 'ar'
-    ? 'تابع أخبار مركز We Rise وبياناته الصحفية وتغطياته الإعلامية وأنشطته في المواطنة والحقوق الرقمية والديمقراطية'
-    : 'Follow We Rise Center news, press releases, media coverage, and activities in citizenship, digital rights, and democracy'
+  const pageCms = await getMediaCenterPageData(locale)
+  const seo = resolveMediaCenterPageSeo(pageCms, locale)
+
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/media-center`,
-    customTitle: locale === 'ar' ? 'المركز الإعلامي' : 'Media Center',
-    customDescription: description,
-    noIndex: Boolean(v || tab),
+    customTitle: seo.title,
+    customDescription: seo.description,
+    noIndex: seo.noIndex || Boolean(v || tab),
   })
 }
 
@@ -55,7 +61,8 @@ const CAT_LABEL: Record<string, Record<string, string>> = Object.fromEntries(
   CATEGORIES.map(c => [c.id, { ar: c.ar, en: c.en }])
 )
 
-function catLabel(cat: string, locale: string) {
+function catLabel(cat: string, locale: string, cmsCategories?: Record<string, string>) {
+  if (cmsCategories?.[cat]) return cmsCategories[cat]
   return CAT_LABEL[cat]?.[locale] ?? cat
 }
 
@@ -74,7 +81,7 @@ function readingTime(content: string, locale: string) {
 }
 
 /* ── Card ── */
-function MediaCard({ item, locale, V, isRTL }: { item: NewsItem; locale: string; V: ReturnType<typeof getVariant>; isRTL: boolean }) {
+function MediaCard({ item, locale, V, isRTL, cmsCategories }: { item: NewsItem; locale: string; V: ReturnType<typeof getVariant>; isRTL: boolean; cmsCategories?: Record<string, string> }) {
   const cat = CATEGORIES.find(c => c.id === item.category)
   const Icon = cat?.icon ?? Newspaper
   return (
@@ -92,7 +99,7 @@ function MediaCard({ item, locale, V, isRTL }: { item: NewsItem; locale: string;
         )}
         <div className="absolute bottom-3 start-3 inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border border-white/20 backdrop-blur-sm text-white bg-black/30">
           <Icon className="w-3 h-3" />
-          {catLabel(item.category, locale)}
+          {catLabel(item.category, locale, cmsCategories)}
         </div>
       </div>
       <div className="p-5">
@@ -193,20 +200,86 @@ function getVariant(variant: 'dark' | 'light' | 'classic') {
   return map[variant]
 }
 
+function buildHeroStats(
+  connected: boolean,
+  useLiveStats: boolean,
+  cmsStats: Array<{ stat_key?: string | null; value: string; suffix?: string; label: string }> | undefined,
+  stats: { total: number; by_category: Record<string, number> },
+) {
+  if (connected && useLiveStats && cmsStats?.length) {
+    return cmsStats.map((stat) => {
+      const statKey = stat.stat_key ?? 'total'
+      const liveValue = statKey === 'total'
+        ? stats.total
+        : (stats.by_category[statKey] ?? 0)
+
+      return {
+        value: `${liveValue}${stat.suffix ?? ''}`,
+        label: stat.label,
+      }
+    })
+  }
+
+  if (connected && cmsStats?.length) {
+    return cmsStats.map((s) => ({
+      value: `${s.value}${s.suffix ?? ''}`,
+      label: s.label,
+    }))
+  }
+
+  return []
+}
+
 export default async function MediaCenterPage({ params, searchParams }: PageProps) {
   const { locale } = await params as { locale: Locale }
   const { v, tab } = await searchParams
   const variant = 'classic' as 'dark' | 'light' | 'classic'
   const activeTab: MediaCategory | 'all' = (tab as MediaCategory | 'all') || 'all'
 
-  const allNews = await getNews(locale)
+  const [allNews, stats, pageCms] = await Promise.all([
+    getNews(locale),
+    getNewsStats(locale),
+    getMediaCenterPageData(locale),
+  ])
+  const connected = cmsConnected(pageCms)
+  const cmsCategories = connected ? pageCms?.config?.categories : undefined
+  const hero = pageCms?.sections?.hero
+  const mediaGrid = pageCms?.sections?.media_grid
+  const seo = resolveMediaCenterPageSeo(pageCms, locale)
   const isRTL = locale === 'ar'
   const V = getVariant(variant)
   const isDark = variant === 'dark'
-  const pageTitle = isRTL ? 'المركز الإعلامي' : 'Media Center'
-  const pageDescription = isRTL
-    ? 'تابع أخبار مركز We Rise وبياناته الصحفية وتغطياته الإعلامية وأنشطته في المواطنة والحقوق الرقمية والديمقراطية'
-    : 'Follow We Rise Center news, press releases, media coverage, and activities in citizenship, digital rights, and democracy'
+  const pageTitle = cmsText(
+    connected,
+    hero?.badge,
+    seo.title,
+  ) ?? seo.title
+  const pageDescription = cmsText(
+    connected,
+    hero?.subtitle,
+    seo.description,
+  ) ?? seo.description
+  const heroTitle = cmsText(
+    connected,
+    hero?.title,
+    isRTL ? 'أخبارنا وفعالياتنا وأنشطتنا الإعلامية' : 'Our News, Events & Media Activities',
+  ) ?? (isRTL ? 'أخبارنا وفعالياتنا وأنشطتنا الإعلامية' : 'Our News, Events & Media Activities')
+  const heroSubtitle = cmsText(
+    connected,
+    hero?.subtitle,
+    isRTL ? 'تابع آخر أخبار وبيانات وأنشطة وتغطيات مركز We Rise للمواطنة والتنمية.' : 'Follow the latest news, statements, activities, and media coverage of We Rise Center.',
+  ) ?? (isRTL ? 'تابع آخر أخبار وبيانات وأنشطة وتغطيات مركز We Rise للمواطنة والتنمية.' : 'Follow the latest news, statements, activities, and media coverage of We Rise Center.')
+  const gridTitle = cmsText(
+    connected,
+    mediaGrid?.title,
+    isRTL ? 'جميع المحتويات' : 'All Content',
+  ) ?? (isRTL ? 'جميع المحتويات' : 'All Content')
+  const heroStats = buildHeroStats(
+    connected,
+    hero?.use_live_stats ?? false,
+    hero?.stats,
+    stats,
+  )
 
   const basePath    = `/${locale}/media-center`
   const darkHref    = basePath
@@ -224,7 +297,11 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
   /* Featured item */
   const featured = allNews.find(n => n.featured) ?? allNews[0]
 
-  const heroImage = 'https://picsum.photos/seed/werise-media-hero/1400/600'
+  const heroImage = resolveCmsMediaUrl(
+    hero?.background_image,
+    undefined,
+    'https://picsum.photos/seed/werise-media-hero/1400/600',
+  )
 
   return (
     <>
@@ -249,14 +326,24 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
         <div className="relative z-10 container-wide pb-14 pt-24 w-full">
           <div className="flex items-center gap-2 mb-4">
             <Rss className={`w-4 h-4 ${V.heroAcc}`} />
-            <span className={`text-xs font-black uppercase tracking-widest ${V.heroAcc}`}>{isRTL ? 'المركز الإعلامي' : 'Media Center'}</span>
+            <span className={`text-xs font-black uppercase tracking-widest ${V.heroAcc}`}>{pageTitle}</span>
           </div>
           <h1 className={`text-3xl md:text-5xl font-black leading-tight max-w-2xl mb-4 ${V.heroTxt}`}>
-            {isRTL ? 'أخبارنا وفعالياتنا وأنشطتنا الإعلامية' : 'Our News, Events & Media Activities'}
+            {heroTitle}
           </h1>
           <p className={`max-w-xl ${V.heroSub}`}>
-            {isRTL ? 'تابع آخر أخبار وبيانات وأنشطة وتغطيات مركز We Rise للمواطنة والتنمية.' : 'Follow the latest news, statements, activities, and media coverage of We Rise Center.'}
+            {heroSubtitle}
           </p>
+          {heroStats.length > 0 && (
+            <div className="flex flex-wrap gap-4 mt-8">
+              {heroStats.map((stat) => (
+                <div key={stat.label} className={`rounded-2xl px-5 py-3 ${V.stat}`}>
+                  <div className={`text-2xl font-black ${V.statTxt}`}>{stat.value}</div>
+                  <div className={`text-xs font-bold mt-1 ${V.heroSub}`}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -273,7 +360,7 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
                 style={isActive ? { borderColor: cat.color, color: cat.color } : {}}
               >
                 <Icon className="w-3.5 h-3.5" />
-                {isRTL ? cat.ar : cat.en}
+                {cmsCategories?.[cat.id] ?? (isRTL ? cat.ar : cat.en)}
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${isActive ? '' : V.badge}`}
                   style={isActive ? { backgroundColor: cat.color + '20', color: cat.color } : {}}>
                   {counts[cat.id] ?? 0}
@@ -309,7 +396,7 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
                 <div className="p-8 flex flex-col justify-center">
                   <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full w-fit mb-4"
                     style={{ backgroundColor: catColor(featured.category) + '20', color: catColor(featured.category) }}>
-                    {catLabel(featured.category, locale)}
+                    {catLabel(featured.category, locale, cmsCategories)}
                   </div>
                   <h2 className={`text-xl md:text-2xl font-black leading-snug mb-3 ${V.heading}`}>{featured.title[locale as Locale]}</h2>
                   <p className={`text-sm leading-relaxed mb-5 ${V.sub}`}>{featured.excerpt[locale as Locale]}</p>
@@ -399,12 +486,12 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
               {activeTab === 'all' && (
                 <div className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest mb-5 ${V.heroAcc}`}>
                   <div className={`w-6 h-0.5 rounded-full ${V.heroAcc}`} />
-                  {isRTL ? 'جميع المحتويات' : 'All Content'}
+                  {gridTitle}
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(activeTab === 'all' ? allNews : filtered).map(item => (
-                  <MediaCard key={item.id} item={item} locale={locale} V={V} isRTL={isRTL} />
+                  <MediaCard key={item.id} item={item} locale={locale} V={V} isRTL={isRTL} cmsCategories={cmsCategories} />
                 ))}
               </div>
             </div>

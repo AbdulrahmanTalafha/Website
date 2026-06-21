@@ -5,11 +5,16 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { BASE_URL, buildMetadata, buildBreadcrumbSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
-import { getNewsBySlug, getNews } from '@/lib/api'
+import { getNewsBySlug, getNews, getProjectBySlug, getPublicationBySlug } from '@/lib/api'
+import { getNewsData, getMediaCenterPageData } from '@/lib/cms'
+import { cmsConnected } from '@/lib/cmsHomeContent'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import { newsData } from '@/data/media'
+import { resolveRelatedNews } from '@/lib/resolveRelatedNews'
+import CmsRichText from '@/components/common/CmsRichText'
 import {
   CalendarDays, User, Tag, Clock, Tv2, ExternalLink, ArrowLeft, ArrowRight,
-  Rss,
+  Rss, FolderOpen, FileText,
 } from 'lucide-react'
 import CopyLinkButton from '@/components/media/CopyLinkButton'
 import DesignSwitcher from '@/components/projects/DesignSwitcher'
@@ -19,8 +24,17 @@ interface PageProps {
   searchParams: Promise<{ v?: string }>
 }
 
+export const revalidate = 60
+
 export async function generateStaticParams() {
-  return newsData.flatMap(n => ['ar', 'en'].map(locale => ({ locale, slug: n.slug })))
+  const cms = await getNewsData('en')
+  const slugs = cms?.records?.length
+    ? cms.records.map((n) => n.slug)
+    : newsData.map((n) => n.slug)
+
+  return slugs.flatMap((slug) =>
+    ['ar', 'en'].map((locale) => ({ locale, slug }))
+  )
 }
 
 const CATEGORY_META: Record<string, { ar: string; en: string; color: string }> = {
@@ -34,7 +48,17 @@ const CATEGORY_META: Record<string, { ar: string; en: string; color: string }> =
 }
 
 function readingTime(content: string) {
-  return Math.max(1, Math.ceil(content.trim().split(/\s+/).length / 200))
+  const text = content.replace(/<[^>]*>/g, ' ')
+  return Math.max(1, Math.ceil(text.trim().split(/\s+/).length / 200))
+}
+
+function resolveCategoryLabel(
+  category: string,
+  locale: Locale,
+  cmsCategories?: Record<string, string>,
+): string {
+  if (cmsCategories?.[category]) return cmsCategories[category]
+  return CATEGORY_META[category]?.[locale] ?? category
 }
 
 function getVariant(_v: string | undefined) {
@@ -101,9 +125,13 @@ function getVariant(_v: string | undefined) {
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale, slug } = await params as { locale: Locale; slug: string }
   const { v } = await searchParams
-  const item = await getNewsBySlug(locale, slug)
+  const [item, pageCms] = await Promise.all([
+    getNewsBySlug(locale, slug),
+    getMediaCenterPageData(locale),
+  ])
   if (!item) return {}
-  const cat = CATEGORY_META[item.category]
+  const cmsCategories = cmsConnected(pageCms) ? pageCms?.config?.categories : undefined
+  const catLabel = resolveCategoryLabel(item.category, locale, cmsCategories)
   const baseMetadata = buildMetadata({
     locale,
     canonicalPath: `/${locale}/media-center/${slug}`,
@@ -134,7 +162,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     },
     other: {
       'article:published_time': item.date,
-      'article:section': cat?.[locale as Locale] ?? '',
+      'article:section': catLabel,
     },
   }
 }
@@ -145,14 +173,23 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
   const item = await getNewsBySlug(locale, slug)
   if (!item) notFound()
 
-  const allNews = await getNews(locale)
-  const related = allNews.filter(n => n.id !== item.id && n.category === item.category).slice(0, 3)
+  const [allNews, pageCms, relatedProject, relatedPublication] = await Promise.all([
+    getNews(locale),
+    getMediaCenterPageData(locale),
+    item.relatedProject ? getProjectBySlug(locale, item.relatedProject) : null,
+    item.relatedPublication ? getPublicationBySlug(locale, item.relatedPublication) : null,
+  ])
+  const connected = cmsConnected(pageCms)
+  const cmsCategories = connected ? pageCms?.config?.categories : undefined
+  const related = resolveRelatedNews(item, allNews)
 
   const isRTL = locale === 'ar'
   const ArrowBack = isRTL ? ArrowRight : ArrowLeft
+  const catLabel = resolveCategoryLabel(item.category, locale, cmsCategories)
   const cat = CATEGORY_META[item.category]
   const mins = readingTime(item.content[locale as Locale])
   const V = getVariant(v)
+  const imageUnoptimized = isCmsHostedMediaUrl(item.image)
 
   const basePath = `/${locale}/media-center/${slug}`
   const darkHref    = basePath
@@ -193,7 +230,7 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
 
       {/* ── HERO ── */}
       <div className="relative min-h-[55vh] overflow-hidden bg-primary-900 flex items-end">
-        <Image src={item.image} alt={item.title[locale as Locale]} fill className="object-cover opacity-25 blur-sm scale-105" sizes="100vw" priority />
+        <Image src={item.image} alt={item.title[locale as Locale]} fill className="object-cover opacity-25 blur-sm scale-105" sizes="100vw" priority unoptimized={imageUnoptimized} />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/70 to-primary-900/20" />
         <div className="relative z-10 container-wide pb-14 pt-28 w-full">
           {/* Breadcrumb */}
@@ -208,7 +245,7 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
           {/* Category badge */}
           <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full mb-5"
             style={{ backgroundColor: (cat?.color ?? '#2B245B') + '25', color: cat?.color ?? '#fff', border: `1px solid ${cat?.color ?? '#2B245B'}40` }}>
-            {cat?.[locale as Locale]}
+            {catLabel}
           </div>
 
           <h1 className="text-white text-2xl md:text-4xl font-black leading-tight max-w-3xl mb-5">
@@ -263,7 +300,7 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
 
               {/* Hero image full */}
               <div className="relative aspect-video rounded-3xl overflow-hidden shadow-xl">
-                <Image src={item.image} alt={item.title[locale as Locale]} fill className="object-cover" sizes="800px" priority />
+                <Image src={item.image} alt={item.title[locale as Locale]} fill className="object-cover" sizes="800px" priority unoptimized={imageUnoptimized} />
               </div>
 
               {/* Excerpt / lead */}
@@ -294,9 +331,7 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
               {/* Content body */}
               <div className={`prose prose-lg max-w-none prose-headings:font-black prose-p:leading-relaxed ${V.prose}`}
                 dir={isRTL ? 'rtl' : 'ltr'}>
-                {item.content[locale as Locale].split('\n').map((para, i) => (
-                  <p key={i}>{para}</p>
-                ))}
+                <CmsRichText html={item.content[locale as Locale]} />
               </div>
 
               {/* Tags */}
@@ -359,7 +394,7 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
                 <p className={`text-xs font-black uppercase tracking-widest mb-3 ${V.label}`}>{isRTL ? 'التصنيف' : 'Category'}</p>
                 <div className="inline-flex items-center gap-2 text-sm font-black px-4 py-2 rounded-2xl"
                   style={{ backgroundColor: (cat?.color ?? '#2B245B') + '15', color: cat?.color ?? '#2B245B' }}>
-                  {cat?.[locale as Locale]}
+                  {catLabel}
                 </div>
               </div>
 
@@ -389,6 +424,76 @@ export default async function NewsDetailPage({ params, searchParams }: PageProps
                   )}
                 </div>
               </div>
+
+              {relatedProject && (
+                <div className={`rounded-3xl p-6 ${V.sidebar}`}>
+                  <p className={`text-xs font-black uppercase tracking-widest mb-4 ${V.label}`}>
+                    {isRTL ? 'المشروع المرتبط' : 'Related Project'}
+                  </p>
+                  <Link
+                    href={`/${locale}/programs-projects/${relatedProject.slug}`}
+                    className="group flex gap-3 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                      <Image
+                        src={relatedProject.featuredImage}
+                        alt={relatedProject.title[locale as Locale]}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                        unoptimized={isCmsHostedMediaUrl(relatedProject.featuredImage)}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-xs font-black leading-snug line-clamp-2 ${V.heading}`}>
+                        {relatedProject.title[locale as Locale]}
+                      </p>
+                      <p className={`text-[10px] mt-1 line-clamp-2 ${V.sub}`}>
+                        {relatedProject.shortDescription[locale as Locale]}
+                      </p>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold mt-2 ${V.link}`}>
+                        <FolderOpen className="w-3 h-3" />
+                        {isRTL ? 'عرض المشروع' : 'View project'}
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              )}
+
+              {relatedPublication && (
+                <div className={`rounded-3xl p-6 ${V.sidebar}`}>
+                  <p className={`text-xs font-black uppercase tracking-widest mb-4 ${V.label}`}>
+                    {isRTL ? 'المنشور المرتبط' : 'Related Publication'}
+                  </p>
+                  <Link
+                    href={`/${locale}/publications-reports/${relatedPublication.slug}`}
+                    className="group flex gap-3 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                      <Image
+                        src={relatedPublication.coverImage}
+                        alt={relatedPublication.title[locale as Locale]}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                        unoptimized={isCmsHostedMediaUrl(relatedPublication.coverImage)}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-xs font-black leading-snug line-clamp-2 ${V.heading}`}>
+                        {relatedPublication.title[locale as Locale]}
+                      </p>
+                      <p className={`text-[10px] mt-1 line-clamp-2 ${V.sub}`}>
+                        {relatedPublication.summary[locale as Locale]}
+                      </p>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold mt-2 ${V.link}`}>
+                        <FileText className="w-3 h-3" />
+                        {isRTL ? 'عرض المنشور' : 'View publication'}
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              )}
 
               {/* Related items */}
               {related.length > 0 && (

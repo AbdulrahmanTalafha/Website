@@ -12,9 +12,10 @@ import { electionsData } from '@/data/elections'
 import { partnersData } from '@/data/partners'
 import { homeData } from '@/data/home'
 import { aboutData } from '@/data/about'
-import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData, getPublicationsData, getPublicationRecordBySlug } from '@/lib/cms'
+import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData, getPublicationsData, getPublicationRecordBySlug, getNewsData, getNewsRecordBySlug } from '@/lib/cms'
 import { mapCmsInitiativeToInitiative } from '@/lib/mapCmsInitiative'
 import { mapCmsPublicationToPublication } from '@/lib/mapCmsPublication'
+import { mapCmsNewsToNewsItem } from '@/lib/mapCmsNews'
 import { mapCmsProjectToProject, projectMatchesGovernorate } from '@/lib/mapCmsProject'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
@@ -167,13 +168,42 @@ export async function getPublicationBySlug(locale: Locale, slug: string): Promis
 }
 
 export async function getNews(locale: Locale, category?: string): Promise<NewsItem[]> {
-  // TODO: Replace with API call: GET /api/news?locale={locale}&category={category}
-  if (category) return newsData.filter(n => n.category === category)
-  return newsData
+  const cms = await getNewsData(locale)
+
+  let items = cms?.records?.length
+    ? cms.records.map(mapCmsNewsToNewsItem)
+    : [...newsData]
+
+  if (category) {
+    items = items.filter(n => n.category === category)
+  }
+
+  return items
+}
+
+export async function getNewsStats(locale: Locale) {
+  const cms = await getNewsData(locale)
+  if (cms?.stats) return cms.stats
+
+  const items = await getNews(locale)
+  const byCategory: Record<string, number> = {}
+  for (const item of items) {
+    byCategory[item.category] = (byCategory[item.category] ?? 0) + 1
+  }
+
+  return { total: items.length, by_category: byCategory }
 }
 
 export async function getNewsBySlug(locale: Locale, slug: string): Promise<NewsItem | null> {
-  // TODO: Replace with API call: GET /api/news/{slug}?locale={locale}
+  const detailRecord = await getNewsRecordBySlug(locale, slug)
+  if (detailRecord) return mapCmsNewsToNewsItem(detailRecord)
+
+  const cms = await getNewsData(locale)
+  if (cms?.records?.length) {
+    const record = cms.records.find((item) => item.slug === slug)
+    if (record) return mapCmsNewsToNewsItem(record)
+  }
+
   return newsData.find(n => n.slug === slug) ?? null
 }
 

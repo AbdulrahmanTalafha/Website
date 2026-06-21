@@ -25,6 +25,7 @@ import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
 import { resolveSiteSettings } from '@/lib/siteSettings'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { cmsUrl } from '@/lib/cmsUrl'
+import { mapCmsNewsToNewsItem } from '@/lib/mapCmsNews'
 import type { CmsPublicationRecord, CmsProjectRecord, CmsInitiativeRecord, CmsNewsRecord } from '@/lib/cms'
 import type { Publication, NewsItem } from '@/types'
 
@@ -321,28 +322,28 @@ export default async function HomePage({ params }: HomePageProps) {
   )
 
   // Latest News
-  const mapCmsNewsToNewsItem = (r: CmsNewsRecord): NewsItem => ({
-    id: String(r.id),
-    slug: r.slug,
-    category: (r.category ?? 'news') as NewsItem['category'],
-    title: { ar: r.title, en: r.title } as Record<Locale, string>,
-    excerpt: { ar: r.summary ?? '', en: r.summary ?? '' } as Record<Locale, string>,
-    content: { ar: r.content ?? '', en: r.content ?? '' } as Record<Locale, string>,
-    date: r.published_at ?? new Date().toISOString().split('T')[0],
-    image: resolveCmsMediaUrl(
-      r.image ?? r.cover_image,
-      news.find((item) => item.slug === r.slug)?.image,
-      `https://picsum.photos/seed/news-${r.slug}/800/500`,
-    ),
-    author: { ar: '', en: '' } as Record<Locale, string>,
-    tags: [],
-  })
   const cmsLatestNewsRecords = cms?.latest_news?.records ?? []
   const latestNewsCount = connected ? (cms?.latest_news?.count ?? 4) : 4
-  const latestNews: NewsItem[] = connected
-    ? (cmsLatestNewsRecords.length > 0
-      ? cmsLatestNewsRecords.map((r) => mapCmsNewsToNewsItem(r as CmsNewsRecord))
-      : news.slice(0, latestNewsCount))
+  const latestNews: NewsItem[] = connected && cmsLatestNewsRecords.length > 0
+    ? cmsLatestNewsRecords
+        .map((r) => {
+          const record = r as CmsNewsRecord
+          const fromList = news.find((item) => item.slug === record.slug)
+          if (fromList) return fromList
+          return mapCmsNewsToNewsItem({
+            id: record.id,
+            slug: record.slug,
+            title_en: record.title ?? '',
+            title_ar: record.title ?? '',
+            summary_en: record.summary ?? '',
+            summary_ar: record.summary ?? '',
+            content_en: record.content ?? '',
+            content_ar: record.content ?? '',
+            category: record.category,
+            published_at: record.published_at,
+            cover_image: record.cover_image ?? record.image,
+          })
+        })
     : news.slice(0, latestNewsCount)
 
   const latestNewsTitle = cmsText(

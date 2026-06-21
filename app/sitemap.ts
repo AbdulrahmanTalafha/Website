@@ -4,7 +4,7 @@ import { publicationsData } from '@/data/publications'
 import { newsData } from '@/data/media'
 import { initiativesData } from '@/data/initiatives'
 import { teamData } from '@/data/team'
-import { getHomeData, getPublicationsData } from '@/lib/cms'
+import { getHomeData, getPublicationsData, getNewsData } from '@/lib/cms'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
 const locales = ['ar', 'en'] as const
@@ -93,19 +93,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   )
 
+  const newsSlugs = await (async () => {
+    const cms = await getNewsData('en')
+    if (cms?.records?.length) return cms.records.map((n) => n.slug)
+    return newsData.map((n) => n.slug)
+  })()
+
   const newsEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
-    newsData.map(n => ({
-      url: `${BASE}/${locale}/media-center/${n.slug}`,
-      lastModified: new Date(n.date),
-      changeFrequency: 'monthly' as const,
-      priority: 0.6,
-      alternates: {
-        languages: {
-          ar: `${BASE}/ar/media-center/${n.slug}`,
-          en: `${BASE}/en/media-center/${n.slug}`,
+    newsSlugs.map(slug => {
+      const staticItem = newsData.find((n) => n.slug === slug)
+      return {
+        url: `${BASE}/${locale}/media-center/${slug}`,
+        lastModified: staticItem ? new Date(staticItem.date) : new Date(),
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+        alternates: {
+          languages: {
+            ar: `${BASE}/ar/media-center/${slug}`,
+            en: `${BASE}/en/media-center/${slug}`,
+          },
         },
-      },
-    }))
+      }
+    })
   )
 
   const initiativeEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>

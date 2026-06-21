@@ -701,6 +701,122 @@ export const getPublicationsPageData = cache(async (locale: string): Promise<Cms
 })
 
 // ─────────────────────────────────────────────
+// News / Media Center module API
+// ─────────────────────────────────────────────
+
+export interface CmsNewsTag {
+  en?: string | null
+  ar?: string | null
+}
+
+export interface CmsNewsListRecord {
+  id: number
+  slug: string
+  title_en: string
+  title_ar: string
+  summary_en?: string | null
+  summary_ar?: string | null
+  content_en?: string | null
+  content_ar?: string | null
+  category: string
+  category_label?: string | null
+  published_at?: string | null
+  cover_image?: string | null
+  author_en?: string | null
+  author_ar?: string | null
+  tags?: CmsNewsTag[]
+  source_en?: string | null
+  source_ar?: string | null
+  source_url?: string | null
+  embed_url?: string | null
+  embed_type?: string | null
+  video_url?: string | null
+  duration?: string | null
+  channel_en?: string | null
+  channel_ar?: string | null
+  related_project_slug?: string | null
+  related_publication_slug?: string | null
+  related_news_ids?: number[]
+  related_news_slugs?: string[]
+  include_same_category_related?: boolean
+  external_url?: string | null
+  is_featured?: boolean
+  sort_order?: number
+}
+
+export interface CmsNewsStats {
+  total: number
+  by_category: Record<string, number>
+}
+
+export interface CmsNewsData {
+  records: CmsNewsListRecord[]
+  stats: CmsNewsStats
+  config?: {
+    categories: Record<string, string>
+  }
+}
+
+export const getNewsData = cache(async (locale: string): Promise<CmsNewsData | null> => {
+  return fetchCms<CmsNewsData>(`/api/${locale}/news`)
+})
+
+export const getNewsRecordBySlug = cache(async (
+  locale: string,
+  slug: string,
+): Promise<CmsNewsListRecord | null> => {
+  const data = await fetchCms<{ record: CmsNewsListRecord }>(`/api/${locale}/news/${slug}`)
+  return data?.record ?? null
+})
+
+// ─────────────────────────────────────────────
+// Media Center listing page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsMediaCenterPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsMediaCenterPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+  use_live_stats?: boolean
+  stats?: Array<{ stat_key?: string | null; value: string; suffix?: string; label: string }>
+}
+
+export interface CmsMediaCenterPageSections {
+  hero?: CmsMediaCenterPageHeroSection
+  media_grid?: { key: string; is_visible: boolean; title?: string | null }
+}
+
+export interface CmsMediaCenterPageData {
+  page: CmsMediaCenterPageMeta
+  sections: CmsMediaCenterPageSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: Record<string, unknown>
+  }>
+  config?: {
+    categories: Record<string, string>
+  }
+}
+
+export const getMediaCenterPageData = cache(async (locale: string): Promise<CmsMediaCenterPageData | null> => {
+  return fetchCms<CmsMediaCenterPageData>(`/api/${locale}/media-center-page`)
+})
+
+// ─────────────────────────────────────────────
 // Section accessors
 // ─────────────────────────────────────────────
 
