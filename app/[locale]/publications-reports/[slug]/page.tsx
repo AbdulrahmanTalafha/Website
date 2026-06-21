@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import type { Locale } from '@/types'
+import type { Locale, Publication } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
 import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPublicationSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
-import { getPublicationBySlug } from '@/lib/api'
+import { getPublicationBySlug, getPublications } from '@/lib/api'
+import { getPublicationsData } from '@/lib/cms'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import { publicationsData } from '@/data/publications'
 import {
   Calendar, Download, FileText, ArrowLeft, ArrowRight,
@@ -20,8 +22,13 @@ interface PublicationDetailProps {
 }
 
 export async function generateStaticParams() {
-  return publicationsData.flatMap(p =>
-    ['ar', 'en'].map(locale => ({ locale, slug: p.slug }))
+  const cms = await getPublicationsData('en')
+  const slugs = cms?.records?.length
+    ? cms.records.map((p) => p.slug)
+    : publicationsData.map((p) => p.slug)
+
+  return slugs.flatMap((slug) =>
+    ['ar', 'en'].map((locale) => ({ locale, slug }))
   )
 }
 
@@ -50,16 +57,12 @@ const TYPE = {
 type PubType = keyof typeof TYPE
 
 /* ── Shared: Related materials renderer ── */
-function RelatedMaterials({ pub, locale, cardCls, textCls }: {
-  pub: (typeof publicationsData)[0],
+function RelatedMaterials({ related, locale, cardCls, textCls }: {
+  related: Publication[],
   locale: Locale,
   cardCls: string,
   textCls: string,
 }) {
-  if (!pub.relatedMaterials?.length) return null
-  const related = pub.relatedMaterials
-    .map(id => publicationsData.find(p => p.id === id))
-    .filter((p): p is (typeof publicationsData)[0] => Boolean(p))
   if (!related.length) return null
   const isRTL = locale === 'ar'
   return (
@@ -70,7 +73,7 @@ function RelatedMaterials({ pub, locale, cardCls, textCls }: {
         return (
           <Link key={r.id} href={`/${locale}/publications-reports/${r.slug}`} className={`group flex items-center gap-3 rounded-2xl p-4 transition-all ${cardCls}`}>
             <div className="relative w-12 h-16 rounded-lg overflow-hidden shrink-0 bg-neutral-100">
-              <Image src={r.coverImage} alt={r.title[locale]} fill className="object-cover" sizes="48px" />
+              <Image src={r.coverImage} alt={r.title[locale]} fill className="object-cover" sizes="48px" unoptimized={isCmsHostedMediaUrl(r.coverImage)} />
               <div className="absolute top-0 start-0 bottom-0 w-1 rounded-s-lg" style={{ backgroundColor: rt.color }} />
             </div>
             <div className="flex-1 min-w-0">
@@ -95,6 +98,12 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
 
   const pub = await getPublicationBySlug(locale, slug)
   if (!pub) notFound()
+
+  const coverUnoptimized = isCmsHostedMediaUrl(pub.coverImage)
+  const allPublications = await getPublications(locale)
+  const relatedPublications = (pub.relatedMaterials ?? [])
+    .map((ref) => allPublications.find((p) => p.slug === ref || p.id === ref))
+    .filter((p): p is Publication => Boolean(p))
 
   const isRTL = locale === 'ar'
   const ArrowBack = isRTL ? ArrowRight : ArrowLeft
@@ -133,7 +142,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
       <div className="relative min-h-[60vh] overflow-hidden bg-primary-900 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900" />
         <div className="absolute inset-0 opacity-10">
-          <Image src={pub.coverImage} alt="" fill className="object-cover blur-2xl scale-110" sizes="100vw" priority />
+          <Image src={pub.coverImage} alt="" fill className="object-cover blur-2xl scale-110" sizes="100vw" priority unoptimized={coverUnoptimized} />
         </div>
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 70% 50%, ${t.color}15 0%, transparent 70%)` }} />
         <div className="absolute top-0 inset-x-0 z-10 container-wide pt-5">
@@ -144,7 +153,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
         </div>
         <div className="relative z-10 container-wide pb-12 pt-24 flex flex-col md:flex-row gap-10 items-end">
           <div className="relative w-44 h-60 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 shrink-0 border border-white/10">
-            <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="176px" />
+            <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="176px" unoptimized={coverUnoptimized} />
             <div className="absolute top-0 start-0 bottom-0 w-3 opacity-30" style={{ background: `linear-gradient(to end, transparent, white)` }} />
           </div>
           <div className="flex-1">
@@ -213,7 +222,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
               {pub.relatedMaterials && pub.relatedMaterials.length > 0 && (
                 <div className="scroll-mt-24">
                   <h2 className="text-lg font-black text-white mb-4">{isRTL ? 'مواد ذات صلة' : 'Related Materials'}</h2>
-                  <RelatedMaterials pub={pub} locale={locale} cardCls="bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10" textCls="text-white/80" />
+                  <RelatedMaterials related={relatedPublications} locale={locale} cardCls="bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10" textCls="text-white/80" />
                 </div>
               )}
             </div>
@@ -257,7 +266,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
       {/* Hero — light version of dark */}
       <div className="relative min-h-[55vh] overflow-hidden flex items-end" style={{ background: `linear-gradient(135deg, #f8f9ff 0%, #ffffff 40%, #f9f9ff 100%)` }}>
         <div className="absolute inset-0 opacity-8">
-          <Image src={pub.coverImage} alt="" fill className="object-cover blur-3xl scale-110" sizes="100vw" priority />
+          <Image src={pub.coverImage} alt="" fill className="object-cover blur-3xl scale-110" sizes="100vw" priority unoptimized={coverUnoptimized} />
         </div>
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 70% 40%, ${t.color}12 0%, transparent 65%)` }} />
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -272,7 +281,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
         </div>
         <div className="relative z-10 container-wide pb-12 pt-24 flex flex-col md:flex-row gap-10 items-end">
           <div className="relative w-44 h-60 rounded-2xl overflow-hidden shadow-2xl shadow-primary-200/60 shrink-0 border border-neutral-200">
-            <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="176px" />
+            <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="176px" unoptimized={coverUnoptimized} />
             <div className="absolute top-0 start-0 bottom-0 w-3" style={{ background: `linear-gradient(to end, ${t.color}60, transparent)` }} />
           </div>
           <div className="flex-1">
@@ -357,14 +366,14 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
                     <div className="w-5 h-0.5 rounded-full" style={{ backgroundColor: t.color }} />
                     {isRTL ? 'مواد ذات صلة' : 'Related Materials'}
                   </div>
-                  <RelatedMaterials pub={pub} locale={locale} cardCls="bg-white border border-neutral-100 hover:border-primary-200 hover:shadow-md" textCls="text-primary-900" />
+                  <RelatedMaterials related={relatedPublications} locale={locale} cardCls="bg-white border border-neutral-100 hover:border-primary-200 hover:shadow-md" textCls="text-primary-900" />
                 </div>
               )}
             </div>
             <div>
               <div className="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm sticky top-24">
                 <div className="w-full aspect-[3/4] rounded-xl overflow-hidden mb-5 bg-neutral-100 relative">
-                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="300px" />
+                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="300px" unoptimized={coverUnoptimized} />
                   <div className="absolute top-0 start-0 bottom-0 w-2 rounded-s-xl" style={{ backgroundColor: t.color }} />
                 </div>
                 <h3 className="text-xs font-black text-neutral-400 uppercase tracking-wider mb-4">{isRTL ? 'بيانات المنشور' : 'Publication Info'}</h3>
@@ -419,7 +428,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
 
       {/* Full-width hero with cover image background */}
       <div className="relative h-80 md:h-[420px] overflow-hidden bg-primary-900">
-        <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover opacity-35" priority sizes="100vw" />
+        <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover opacity-35" priority sizes="100vw" unoptimized={coverUnoptimized} />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/60 to-transparent" />
         <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 60% 80%, ${t.color}20 0%, transparent 60%)` }} />
         <div className="absolute inset-0 flex flex-col justify-end container-wide pb-10">
@@ -508,7 +517,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
                     </div>
                     <h2 className="text-xl font-black text-primary-900">{isRTL ? 'مواد ذات صلة' : 'Related Materials'}</h2>
                   </div>
-                  <RelatedMaterials pub={pub} locale={locale} cardCls="bg-white rounded-2xl border border-neutral-100 hover:border-secondary-200 hover:shadow-lg" textCls="text-primary-900" />
+                  <RelatedMaterials related={relatedPublications} locale={locale} cardCls="bg-white rounded-2xl border border-neutral-100 hover:border-secondary-200 hover:shadow-lg" textCls="text-primary-900" />
                 </div>
               )}
             </div>
@@ -518,7 +527,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
               <div className="bg-white border border-neutral-100 rounded-2xl p-6 shadow-sm sticky top-12">
                 {/* Book cover */}
                 <div className="w-full aspect-[3/4] rounded-xl overflow-hidden mb-5 bg-neutral-100 relative shadow-md">
-                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="300px" />
+                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover" sizes="300px" unoptimized={coverUnoptimized} />
                   <div className="absolute top-0 start-0 bottom-0 w-2 rounded-s-xl" style={{ backgroundColor: t.color }} />
                 </div>
                 <h3 className="text-sm font-black text-neutral-400 uppercase tracking-wider mb-4">{isRTL ? 'بيانات المنشور' : 'Details'}</h3>

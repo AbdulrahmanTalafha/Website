@@ -299,27 +299,12 @@ export default async function HomePage({ params }: HomePageProps) {
   )
 
   // Latest Publications
-  const mapCmsPublicationToPublication = (r: CmsPublicationRecord): Publication => ({
-    id: String(r.id),
-    slug: r.slug,
-    title: { ar: r.title, en: r.title } as Record<Locale, string>,
-    summary: { ar: r.summary ?? '', en: r.summary ?? '' } as Record<Locale, string>,
-    coverImage: resolveCmsMediaUrl(
-      r.cover_image ?? r.image,
-      publications.find((pub) => pub.slug === r.slug)?.coverImage,
-      `https://picsum.photos/seed/pub-${r.slug}/400/560`,
-    ),
-    publishDate: r.publication_date ?? new Date().toISOString().split('T')[0],
-    type: (r.type ?? 'report') as Publication['type'],
-    tags: [],
-    pdfUrl: '',
-  })
   const cmsLatestPublicationRecords = cms?.latest_publications?.records ?? []
   const latestPubCount = connected ? (cms?.latest_publications?.count ?? 3) : 3
-  const latestPublications: Publication[] = connected
-    ? (cmsLatestPublicationRecords.length > 0
-      ? cmsLatestPublicationRecords.map((r) => mapCmsPublicationToPublication(r as CmsPublicationRecord))
-      : publications.slice(0, latestPubCount))
+  const latestPublications: Publication[] = connected && cmsLatestPublicationRecords.length > 0
+    ? cmsLatestPublicationRecords
+        .map((r) => publications.find((p) => p.slug === (r as CmsPublicationRecord).slug))
+        .filter((p): p is Publication => Boolean(p))
     : publications.slice(0, latestPubCount)
 
   const latestPubTitle = cmsText(

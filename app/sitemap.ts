@@ -4,7 +4,7 @@ import { publicationsData } from '@/data/publications'
 import { newsData } from '@/data/media'
 import { initiativesData } from '@/data/initiatives'
 import { teamData } from '@/data/team'
-import { getHomeData } from '@/lib/cms'
+import { getHomeData, getPublicationsData } from '@/lib/cms'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
 const locales = ['ar', 'en'] as const
@@ -72,16 +72,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   )
 
+  const publicationSlugs = await (async () => {
+    const cms = await getPublicationsData('en')
+    if (cms?.records?.length) return cms.records.map((p) => p.slug)
+    return publicationsData.map((p) => p.slug)
+  })()
+
   const publicationEntries: MetadataRoute.Sitemap = locales.flatMap(locale =>
-    publicationsData.map(p => ({
-      url: `${BASE}/${locale}/publications-reports/${p.slug}`,
+    publicationSlugs.map(slug => ({
+      url: `${BASE}/${locale}/publications-reports/${slug}`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       alternates: {
         languages: {
-          ar: `${BASE}/ar/publications-reports/${p.slug}`,
-          en: `${BASE}/en/publications-reports/${p.slug}`,
+          ar: `${BASE}/ar/publications-reports/${slug}`,
+          en: `${BASE}/en/publications-reports/${slug}`,
         },
       },
     }))

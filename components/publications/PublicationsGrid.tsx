@@ -11,7 +11,11 @@ import {
   Tag, ChevronDown,
 } from 'lucide-react'
 
-interface Props { publications: Publication[]; locale: Locale }
+interface Props {
+  publications: Publication[]
+  locale: Locale
+  typeLabels?: Record<string, string>
+}
 
 const TYPE = {
   'report':       { ar: 'تقارير',        en: 'Reports',       icon: FileBarChart2, badge: 'bg-blue-50 text-blue-700 border-blue-200',     dark: 'bg-blue-500/20 text-blue-300 border-blue-500/30',   color: '#3b82f6' },
@@ -31,7 +35,12 @@ const TYPE_SINGULAR: Record<string, Record<string, string>> = {
 
 type PubType = keyof typeof TYPE
 
-export default function PublicationsGrid({ publications, locale }: Props) {
+function singularTypeLabel(type: string, locale: Locale, typeLabels?: Record<string, string>): string {
+  if (typeLabels?.[type]) return typeLabels[type]
+  return TYPE_SINGULAR[type]?.[locale] ?? type
+}
+
+export default function PublicationsGrid({ publications, locale, typeLabels }: Props) {
   const isRTL = locale === 'ar'
   const Arrow = isRTL ? ArrowLeft : ArrowRight
 
@@ -195,7 +204,7 @@ export default function PublicationsGrid({ publications, locale }: Props) {
               <div className="absolute inset-0 flex flex-col justify-end p-4">
                 <div className="bg-black/40 rounded-xl p-3 text-center backdrop-blur-sm">
                   <TypeIcon className="w-6 h-6 text-white mx-auto mb-1" />
-                  <div className="text-white/80 text-xs font-bold">{isRTL ? TYPE_SINGULAR[featured.type]?.ar : TYPE_SINGULAR[featured.type]?.en}</div>
+                  <div className="text-white/80 text-xs font-bold">{singularTypeLabel(featured.type, locale, typeLabels)}</div>
                   {featured.pages && <div className="text-white/50 text-xs mt-1">{featured.pages} {isRTL ? 'صفحة' : 'pages'}</div>}
                 </div>
               </div>
@@ -209,7 +218,7 @@ export default function PublicationsGrid({ publications, locale }: Props) {
                   </span>
                   <span className="text-xs text-white/40 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5">
                     <TypeIcon className="w-3 h-3" />
-                    {isRTL ? TYPE_SINGULAR[featured.type]?.ar : TYPE_SINGULAR[featured.type]?.en}
+                    {singularTypeLabel(featured.type, locale, typeLabels)}
                   </span>
                 </div>
                 <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3 group-hover:text-secondary-300 transition-colors">
@@ -269,7 +278,7 @@ export default function PublicationsGrid({ publications, locale }: Props) {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                   <div className={`absolute top-3 start-3 flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${t.badge}`}>
                     <TypeIcon className="w-3 h-3" />
-                    {isRTL ? TYPE_SINGULAR[pub.type]?.ar : TYPE_SINGULAR[pub.type]?.en}
+                    {singularTypeLabel(pub.type, locale, typeLabels)}
                   </div>
                 </div>
                 <div className="h-0.5 w-full" style={{ backgroundColor: t.color }} />
@@ -320,7 +329,7 @@ export default function PublicationsGrid({ publications, locale }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${t.badge}`}>
-                      <TypeIcon className="w-3 h-3" />{isRTL ? TYPE_SINGULAR[pub.type]?.ar : TYPE_SINGULAR[pub.type]?.en}
+                      <TypeIcon className="w-3 h-3" />{singularTypeLabel(pub.type, locale, typeLabels)}
                     </span>
                     <span className="text-xs text-neutral-400">{pub.publishDate.slice(0, 4)}</span>
                   </div>

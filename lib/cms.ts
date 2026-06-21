@@ -594,6 +594,113 @@ export const getInitiativesPageData = cache(async (locale: string): Promise<CmsI
 })
 
 // ─────────────────────────────────────────────
+// Publications module API
+// ─────────────────────────────────────────────
+
+export interface CmsPublicationAuthor {
+  en?: string | null
+  ar?: string | null
+}
+
+export interface CmsPublicationTag {
+  en?: string | null
+  ar?: string | null
+}
+
+export interface CmsPublicationListRecord {
+  id: number
+  slug: string
+  title_en: string
+  title_ar: string
+  summary_en?: string | null
+  summary_ar?: string | null
+  type: string
+  type_label?: string | null
+  publication_date?: string | null
+  cover_image?: string | null
+  pdf_url?: string | null
+  pages?: number | null
+  authors?: CmsPublicationAuthor[]
+  tags?: CmsPublicationTag[]
+  related_publication_ids?: number[]
+  related_publication_slugs?: string[]
+  is_featured?: boolean
+  sort_order?: number
+}
+
+export interface CmsPublicationsStats {
+  total: number
+  by_type: Record<string, number>
+}
+
+export interface CmsPublicationsData {
+  records: CmsPublicationListRecord[]
+  stats: CmsPublicationsStats
+  config?: {
+    types: Record<string, string>
+  }
+}
+
+export const getPublicationsData = cache(async (locale: string): Promise<CmsPublicationsData | null> => {
+  return fetchCms<CmsPublicationsData>(`/api/${locale}/publications`)
+})
+
+export const getPublicationRecordBySlug = cache(async (
+  locale: string,
+  slug: string,
+): Promise<CmsPublicationListRecord | null> => {
+  const data = await fetchCms<{ record: CmsPublicationListRecord }>(`/api/${locale}/publications/${slug}`)
+  return data?.record ?? null
+})
+
+// ─────────────────────────────────────────────
+// Publications & Reports listing page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsPublicationsPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsPublicationsPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+  use_live_stats?: boolean
+  stats?: Array<{ stat_key?: string | null; value: string; suffix?: string; label: string }>
+}
+
+export interface CmsPublicationsPageSections {
+  hero?: CmsPublicationsPageHeroSection
+  publications_grid?: { key: string; is_visible: boolean; title?: string | null }
+}
+
+export interface CmsPublicationsPageData {
+  page: CmsPublicationsPageMeta
+  sections: CmsPublicationsPageSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: Record<string, unknown>
+  }>
+  config?: {
+    types: Record<string, string>
+  }
+}
+
+export const getPublicationsPageData = cache(async (locale: string): Promise<CmsPublicationsPageData | null> => {
+  return fetchCms<CmsPublicationsPageData>(`/api/${locale}/publications-page`)
+})
+
+// ─────────────────────────────────────────────
 // Section accessors
 // ─────────────────────────────────────────────
 

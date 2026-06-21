@@ -12,8 +12,9 @@ import { electionsData } from '@/data/elections'
 import { partnersData } from '@/data/partners'
 import { homeData } from '@/data/home'
 import { aboutData } from '@/data/about'
-import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData } from '@/lib/cms'
+import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData, getPublicationsData, getPublicationRecordBySlug } from '@/lib/cms'
 import { mapCmsInitiativeToInitiative } from '@/lib/mapCmsInitiative'
+import { mapCmsPublicationToPublication } from '@/lib/mapCmsPublication'
 import { mapCmsProjectToProject, projectMatchesGovernorate } from '@/lib/mapCmsProject'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
@@ -120,19 +121,48 @@ export async function getPublications(locale: Locale, filters?: {
   topic?: string
   type?: string
 }): Promise<Publication[]> {
-  // TODO: Replace with API call: GET /api/publications?locale={locale}&filters
-  let pubs = [...publicationsData]
+  const cms = await getPublicationsData(locale)
+
+  let pubs = cms?.records?.length
+    ? cms.records.map(mapCmsPublicationToPublication)
+    : [...publicationsData]
+
   if (filters?.type) {
     pubs = pubs.filter(p => p.type === filters.type)
   }
   if (filters?.year) {
     pubs = pubs.filter(p => p.publishDate.startsWith(filters.year!))
   }
+  if (filters?.topic) {
+    pubs = pubs.filter(p => p.tags.some(t => t[locale] === filters.topic))
+  }
+
   return pubs
 }
 
+export async function getPublicationsStats(locale: Locale) {
+  const cms = await getPublicationsData(locale)
+  if (cms?.stats) return cms.stats
+
+  const publications = await getPublications(locale)
+  const byType: Record<string, number> = {}
+  for (const pub of publications) {
+    byType[pub.type] = (byType[pub.type] ?? 0) + 1
+  }
+
+  return { total: publications.length, by_type: byType }
+}
+
 export async function getPublicationBySlug(locale: Locale, slug: string): Promise<Publication | null> {
-  // TODO: Replace with API call: GET /api/publications/{slug}?locale={locale}
+  const detailRecord = await getPublicationRecordBySlug(locale, slug)
+  if (detailRecord) return mapCmsPublicationToPublication(detailRecord)
+
+  const cms = await getPublicationsData(locale)
+  if (cms?.records?.length) {
+    const record = cms.records.find((item) => item.slug === slug)
+    if (record) return mapCmsPublicationToPublication(record)
+  }
+
   return publicationsData.find(p => p.slug === slug) ?? null
 }
 
