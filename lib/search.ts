@@ -1,7 +1,7 @@
 import type { Locale } from '@/types'
 import { rewriteLegacyImageUrl } from '@/lib/placeholderImages'
 
-const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL || 'http://127.0.0.1:8000'
+const CMS_URL = process.env.CMS_INTERNAL_URL ?? process.env.NEXT_PUBLIC_CMS_URL ?? 'http://127.0.0.1:8000'
 
 export interface SearchResultItem {
   id: string

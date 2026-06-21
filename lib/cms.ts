@@ -5,7 +5,7 @@
 
 import { cache } from 'react'
 
-const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? 'http://127.0.0.1:8000'
+const CMS_URL = process.env.CMS_INTERNAL_URL ?? process.env.NEXT_PUBLIC_CMS_URL ?? 'http://127.0.0.1:8000'
 
 // ─────────────────────────────────────────────
 // Shared primitive types

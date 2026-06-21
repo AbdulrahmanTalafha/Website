@@ -1,0 +1,18 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        NEXT_PUBLIC_CMS_URL: http://localhost:8000
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_CMS_URL: http://localhost:8000
+      # CMS runs separately (WeRise-CMS-new compose on host port 8000)
+      CMS_INTERNAL_URL: http://host.docker.internal:8000
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

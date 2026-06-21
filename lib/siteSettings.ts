@@ -1,5 +1,6 @@
 import { siteData } from '@/data/site'
 import type { CmsSettingsData } from '@/lib/cms'
+import { cmsAssetUrl } from '@/lib/cmsUrl'
 import { BASE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo'
 import type { Locale } from '@/types'
 
@@ -83,15 +84,16 @@ export function resolveSiteSettings(
       (connected && cms?.site?.description?.trim()) || siteData.description[locale],
     url: (connected && cms?.site?.url?.trim()) || siteData.url,
     branding: {
-      logoSrc: cms?.branding?.main_logo?.trim() || staticLogo(locale),
+      logoSrc:
+        cmsAssetUrl(cms?.branding?.main_logo?.trim()) || staticLogo(locale),
       logoAlt:
         cms?.branding?.main_logo_alt?.trim() || siteData.name[locale],
-      favicon: cms?.branding?.favicon?.trim() || '/favicon.svg',
+      favicon: cmsAssetUrl(cms?.branding?.favicon?.trim()) || '/favicon.svg',
       appleTouchIcon:
-        cms?.branding?.apple_touch_icon?.trim() || '/apple-touch-icon.svg',
+        cmsAssetUrl(cms?.branding?.apple_touch_icon?.trim()) || '/apple-touch-icon.svg',
       defaultOgImage:
-        cms?.branding?.default_og_image?.trim()
-        || cms?.seo?.default_image?.trim()
+        cmsAssetUrl(cms?.branding?.default_og_image?.trim())
+        || cmsAssetUrl(cms?.seo?.default_image?.trim())
         || defaultOg,
     },
     contact: {
@@ -114,8 +116,8 @@ export function resolveSiteSettings(
         (connected && cms?.seo?.default_description?.trim())
         || siteData.description[locale],
       defaultImage:
-        cms?.seo?.default_image?.trim()
-        || cms?.branding?.default_og_image?.trim()
+        cmsAssetUrl(cms?.seo?.default_image?.trim())
+        || cmsAssetUrl(cms?.branding?.default_og_image?.trim())
         || defaultOg,
     },
     analytics: {
