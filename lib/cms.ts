@@ -482,6 +482,92 @@ export const getPartnersPageData = cache(async (locale: string): Promise<CmsPart
 })
 
 // ─────────────────────────────────────────────
+// Team & Governance listing page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsTeamPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsTeamPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+  use_live_stats?: boolean
+  stats?: Array<{ value: string; suffix?: string; label: string }>
+}
+
+export interface CmsTeamPageGridSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  use_live_member_count?: boolean
+  count_label?: string | null
+}
+
+export interface CmsTeamGovernanceBody {
+  key: string
+  title: string
+  description: string
+  member_ids: number[]
+}
+
+export interface CmsTeamOrgChart {
+  title?: string | null
+  leadership?: {
+    badge?: string | null
+    subtitle?: string | null
+    title?: string | null
+    person_name?: string | null
+  }
+  departments?: Array<{ icon: string; label: string; sub: string }>
+  role_columns?: Array<{ roles: string[] }>
+  support_strip?: {
+    title?: string | null
+    items?: Array<{ icon: string; label: string }>
+  }
+}
+
+export interface CmsTeamGovernanceSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  bodies?: CmsTeamGovernanceBody[]
+  org_chart?: CmsTeamOrgChart
+}
+
+export interface CmsTeamPageSections {
+  hero?: CmsTeamPageHeroSection
+  team_grid?: CmsTeamPageGridSection
+  governance?: CmsTeamGovernanceSection
+}
+
+export interface CmsTeamPageData {
+  page: CmsTeamPageMeta
+  sections: CmsTeamPageSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: Record<string, unknown>
+  }>
+}
+
+export const getTeamPageData = cache(async (locale: string): Promise<CmsTeamPageData | null> => {
+  return fetchCms<CmsTeamPageData>(`/api/${locale}/team-page`)
+})
+
+// ─────────────────────────────────────────────
 // Digital Observatory page (CMS)
 // ─────────────────────────────────────────────
 
@@ -853,6 +939,217 @@ export interface CmsPublicationsPageData {
 export const getPublicationsPageData = cache(async (locale: string): Promise<CmsPublicationsPageData | null> => {
   return fetchCms<CmsPublicationsPageData>(`/api/${locale}/publications-page`)
 })
+
+// ─────────────────────────────────────────────
+// Contact page API
+// ─────────────────────────────────────────────
+
+export interface CmsContactPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsContactPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+}
+
+export interface CmsContactPageFormSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  description?: string | null
+  notification_email?: string | null
+}
+
+export interface CmsContactPageInfoSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  show_social?: boolean
+  website_url?: string | null
+  website_label?: string | null
+}
+
+export interface CmsContactPageMapSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  map_embed_url?: string | null
+}
+
+export interface CmsContactPageSections {
+  hero?: CmsContactPageHeroSection
+  contact_form?: CmsContactPageFormSection
+  contact_info?: CmsContactPageInfoSection
+  map?: CmsContactPageMapSection
+}
+
+export interface CmsContactPageData {
+  page: CmsContactPageMeta
+  sections: CmsContactPageSections
+  sections_order?: string[]
+}
+
+export const getContactPageData = cache(async (locale: string): Promise<CmsContactPageData | null> => {
+  return fetchCms<CmsContactPageData>(`/api/${locale}/contact-page`)
+})
+
+export interface ContactSubmissionResult {
+  reference_number: string
+}
+
+export interface ContactSubmissionError {
+  message: string
+  errors?: Record<string, string[]>
+}
+
+export async function submitContactForm(
+  body: Record<string, string>,
+): Promise<{ ok: true; data: ContactSubmissionResult } | { ok: false; error: ContactSubmissionError }> {
+  try {
+    const res = await fetch(`${CMS_URL}/api/contact-submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const payload = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: {
+          message: typeof payload?.message === 'string' ? payload.message : 'Submission failed',
+          errors: payload?.errors as Record<string, string[]> | undefined,
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      data: payload as ContactSubmissionResult,
+    }
+  } catch {
+    return {
+      ok: false,
+      error: { message: 'Network error' },
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Join Us page API
+// ─────────────────────────────────────────────
+
+export interface CmsJoinPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsJoinPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+}
+
+export interface CmsJoinPageFormSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  description?: string | null
+  notification_email?: string | null
+}
+
+export interface CmsJoinWhyJoinItem {
+  icon?: string | null
+  title?: string | null
+  description?: string | null
+}
+
+export interface CmsJoinWhyJoinSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  items?: CmsJoinWhyJoinItem[]
+}
+
+export interface CmsJoinPageSections {
+  hero?: CmsJoinPageHeroSection
+  application_form?: CmsJoinPageFormSection
+  why_join?: CmsJoinWhyJoinSection
+}
+
+export interface CmsJoinPageData {
+  page: CmsJoinPageMeta
+  sections: CmsJoinPageSections
+  sections_order?: string[]
+  config?: {
+    interests: Record<string, string>
+  }
+}
+
+export const getJoinPageData = cache(async (locale: string): Promise<CmsJoinPageData | null> => {
+  return fetchCms<CmsJoinPageData>(`/api/${locale}/join-page`)
+})
+
+export interface JoinApplicationResult {
+  reference_number: string
+}
+
+export interface JoinApplicationError {
+  message: string
+  errors?: Record<string, string[]>
+}
+
+export async function submitJoinApplication(
+  body: Record<string, string>,
+): Promise<{ ok: true; data: JoinApplicationResult } | { ok: false; error: JoinApplicationError }> {
+  try {
+    const res = await fetch(`${CMS_URL}/api/join-applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const payload = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: {
+          message: typeof payload?.message === 'string' ? payload.message : 'Submission failed',
+          errors: payload?.errors as Record<string, string[]> | undefined,
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      data: payload as JoinApplicationResult,
+    }
+  } catch {
+    return {
+      ok: false,
+      error: { message: 'Network error' },
+    }
+  }
+}
 
 // ─────────────────────────────────────────────
 // News / Media Center module API

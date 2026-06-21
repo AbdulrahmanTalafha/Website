@@ -51,6 +51,11 @@ export const navigationItems: NavItem[] = [
     description: { ar: 'شركاؤنا المحليون والدوليون والجهات الداعمة لعملنا', en: 'Our local and international partners and supporting organizations' },
   },
   {
+    label: { ar: 'انضم إلينا', en: 'Join Us' },
+    href: '/join-us',
+    description: { ar: 'قدّم طلبك للتطوع أو التدريب أو الشراكة مع مركز We Rise', en: 'Apply to volunteer, intern, or collaborate with We Rise Center' },
+  },
+  {
     label: { ar: 'اتصل بنا', en: 'Contact Us' },
     href: '/contact',
     description: { ar: 'تواصل معنا لأي استفسار أو شراكة أو دعم', en: 'Reach out for inquiries, partnerships or support' },
@@ -88,6 +93,7 @@ export const footerLinks = {
   contact: {
     label: { ar: 'تواصل معنا', en: 'Contact' },
     items: [
+      { label: { ar: 'انضم إلينا', en: 'Join Us' }, href: '/join-us' },
       { label: { ar: 'اتصل بنا', en: 'Contact Us' }, href: '/contact' },
       { label: { ar: 'اشترك في النشرة', en: 'Newsletter' }, href: '/contact#newsletter' },
     ],

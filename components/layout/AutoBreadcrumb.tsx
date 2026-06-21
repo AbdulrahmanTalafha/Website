@@ -40,7 +40,7 @@ export default function AutoBreadcrumb() {
 
   const isRTL = locale === 'ar'
   const Chevron = isRTL ? ChevronLeft : ChevronRight
-  const isDarkPage = pathSegments[0] === 'digital-observatory'
+  const isDarkPage = pathSegments[0] === 'digital-observatory' || pathSegments[0] === 'e-election-platform'
 
   const items: { label: string; href: string; current: boolean }[] = []
   pathSegments.forEach((seg, i) => {
