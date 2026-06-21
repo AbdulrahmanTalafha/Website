@@ -3,7 +3,6 @@
  * When CMS is unavailable, static fallbacks are used.
  */
 
-import type { CmsHomeSections } from '@/lib/cms'
 import { cmsUrl } from '@/lib/cmsUrl'
 
 export function cmsConnected(cms: unknown): boolean {
@@ -25,13 +24,17 @@ export interface CmsButtonDisplay {
   url: string
 }
 
-export function cmsSectionVisible(
+export interface CmsSectionWithVisibility {
+  is_visible?: boolean
+}
+
+export function cmsSectionVisible<T extends object>(
   connected: boolean,
-  cms: CmsHomeSections | undefined,
-  key: keyof CmsHomeSections,
+  cms: T | undefined,
+  key: keyof T,
 ): boolean {
   if (!connected) return true
-  const section = cms?.[key]
+  const section = cms?.[key] as CmsSectionWithVisibility | undefined
   if (!section) return false
   return section.is_visible !== false
 }
