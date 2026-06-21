@@ -1,5 +1,6 @@
 import type { Locale, MediaCategory, NewsItem } from '@/types'
 import { cmsAbsoluteMediaUrl, resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import type { CmsNewsListRecord } from '@/lib/cms'
 
 function cmsText(value: string | null | undefined): string {
@@ -23,7 +24,7 @@ function resolveEmbedType(value: string | null | undefined): NewsItem['embedType
 }
 
 export function mapCmsNewsToNewsItem(record: CmsNewsListRecord): NewsItem {
-  const placeholder = `https://picsum.photos/seed/news-${record.slug}/800/500`
+  const placeholder = placeholderPhotoUrl(`news-${record.slug}`, 800, 500)
 
   const item: NewsItem = {
     id: String(record.id),

@@ -1,5 +1,6 @@
 import type { Initiative, InitiativeCategory, Locale } from '@/types'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import type { CmsInitiativeListRecord } from '@/lib/cms'
 
 function mapOutputs(outputs: CmsInitiativeListRecord['outputs']): Array<Record<Locale, string>> {
@@ -15,7 +16,7 @@ function cmsSummary(value: string | null | undefined): string {
 }
 
 export function mapCmsInitiativeToInitiative(record: CmsInitiativeListRecord): Initiative {
-  const placeholder = `https://picsum.photos/seed/initiative-${record.id}/800/500`
+  const placeholder = placeholderPhotoUrl(`initiative-${record.id}`, 800, 500)
   const categoryKey = (record.category_key ?? 'initiative') as InitiativeCategory
 
   return {

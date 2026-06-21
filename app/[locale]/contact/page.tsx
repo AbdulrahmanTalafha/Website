@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildContactPageSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildContactPageSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import ContactForm from '@/components/contact/ContactForm'
@@ -10,6 +11,7 @@ import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolveContactPageSeo } from '@/lib/contactPageSeo'
 import { resolveSiteSettings } from '@/lib/siteSettings'
 import { MapPin, Phone, Mail, Globe } from 'lucide-react'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface PageProps { params: Promise<{ locale: string }> }
 
@@ -17,14 +19,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getContactPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getContactPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveContactPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/contact`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -71,8 +77,8 @@ export default async function ContactPage({ params }: PageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'تواصل' : 'Get in Touch')
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-contact/1400/700')
-    : 'https://picsum.photos/seed/werise-contact/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-contact', 1400, 700))
+    : placeholderPhotoUrl('werise-contact', 1400, 700)
 
   const formTitle = cmsText(connected, contactForm?.title, isRTL ? 'أرسل رسالة' : 'Send a Message')
   const formDescription = cmsText(
@@ -114,6 +120,7 @@ export default async function ContactPage({ params }: PageProps) {
           description: seo.description,
           url: `${BASE_URL}/${locale}/contact`,
           locale,
+          site,
         }),
       ]} />
 

@@ -1,13 +1,16 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import JoinForm from '@/components/join/JoinForm'
-import { getJoinPageData } from '@/lib/cms'
+import { getSettings, getJoinPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolveJoinPageSeo } from '@/lib/joinPageSeo'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface PageProps { params: Promise<{ locale: string }> }
 
@@ -15,14 +18,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getJoinPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getJoinPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveJoinPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/join-us`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -63,8 +70,8 @@ export default async function JoinUsPage({ params }: PageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'شاركنا' : 'Get Involved')
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-join/1400/700')
-    : 'https://picsum.photos/seed/werise-join/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-join', 1400, 700))
+    : placeholderPhotoUrl('werise-join', 1400, 700)
 
   const formTitle = cmsText(connected, applicationForm?.title, isRTL ? 'قدّم طلبك' : 'Submit Your Application')
   const formDescription = cmsText(

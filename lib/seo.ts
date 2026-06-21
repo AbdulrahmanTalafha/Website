@@ -1,7 +1,51 @@
 import type { Locale } from '@/types'
 import { siteData } from '@/data/site'
+import type { ResolvedSiteSettings } from '@/lib/siteSettings'
 
 export const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://werise.org.jo'
+
+/** Static fallback when CMS default OG image is not set (file lives in /public). */
+export const DEFAULT_OG_IMAGE = `${BASE_URL}/og-default.svg`
+
+function resolveSchemaSiteName(locale: Locale, site?: ResolvedSiteSettings | null): string {
+  return site?.name ?? siteData.name[locale]
+}
+
+function resolveSchemaSiteUrl(site?: ResolvedSiteSettings | null): string {
+  const url = site?.url?.trim()
+  return url || BASE_URL
+}
+
+function resolveSchemaLogoUrl(locale: Locale, site?: ResolvedSiteSettings | null): string {
+  const src = site?.branding.logoSrc ?? (locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg')
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    return src
+  }
+  return `${BASE_URL}${src.startsWith('/') ? src : `/${src}`}`
+}
+
+function resolveSchemaSameAs(site?: ResolvedSiteSettings | null): string[] {
+  if (!site?.social) {
+    return Object.values(siteData.social).filter(Boolean)
+  }
+
+  return [
+    site.social.facebook,
+    site.social.x,
+    site.social.instagram,
+    site.social.linkedin,
+    site.social.youtube,
+  ].filter((url): url is string => Boolean(url?.trim()))
+}
+
+function resolveSchemaAddressLocality(locale: Locale, site?: ResolvedSiteSettings | null): string {
+  const address = site?.contact.address?.trim()
+  if (address) {
+    return address
+  }
+
+  return locale === 'ar' ? 'عمّان' : 'Amman'
+}
 
 interface SeoOptions {
   locale: Locale
@@ -35,7 +79,7 @@ export function buildMetadata(opts: SeoOptions) {
   const siteName = siteNameOverride ?? siteData.name[locale]
   const title = customTitle ?? siteName
   const description = customDescription ?? siteData.description[locale]
-  const ogImg = ogImage ?? `${BASE_URL}/og-default.png`
+  const ogImg = ogImage ?? DEFAULT_OG_IMAGE
   const canonical = `${BASE_URL}${canonicalPath}`
 
   return {
@@ -91,6 +135,7 @@ export function buildCollectionPageSchema(opts: {
   description: string
   url: string
   locale: Locale
+  site?: ResolvedSiteSettings | null
 }) {
   return {
     '@context': 'https://schema.org',
@@ -101,8 +146,8 @@ export function buildCollectionPageSchema(opts: {
     inLanguage: opts.locale === 'ar' ? 'ar' : 'en',
     isPartOf: {
       '@type': 'WebSite',
-      name: siteData.name[opts.locale],
-      url: BASE_URL,
+      name: resolveSchemaSiteName(opts.locale, opts.site),
+      url: resolveSchemaSiteUrl(opts.site),
     },
   }
 }
@@ -112,6 +157,7 @@ export function buildContactPageSchema(opts: {
   description: string
   url: string
   locale: Locale
+  site?: ResolvedSiteSettings | null
 }) {
   return {
     '@context': 'https://schema.org',
@@ -120,7 +166,7 @@ export function buildContactPageSchema(opts: {
     description: opts.description,
     url: opts.url,
     inLanguage: opts.locale === 'ar' ? 'ar' : 'en',
-    about: buildOrganizationSchema(opts.locale),
+    about: buildOrganizationSchema(opts.locale, opts.site),
   }
 }
 
@@ -129,6 +175,7 @@ export function buildServiceSchema(opts: {
   description: string
   url: string
   locale: Locale
+  site?: ResolvedSiteSettings | null
 }) {
   return {
     '@context': 'https://schema.org',
@@ -139,42 +186,48 @@ export function buildServiceSchema(opts: {
     areaServed: 'JO',
     provider: {
       '@type': 'Organization',
-      name: siteData.name[opts.locale],
-      url: BASE_URL,
+      name: resolveSchemaSiteName(opts.locale, opts.site),
+      url: resolveSchemaSiteUrl(opts.site),
     },
   }
 }
 
-export function buildOrganizationSchema(locale: Locale) {
+export function buildOrganizationSchema(
+  locale: Locale,
+  site?: ResolvedSiteSettings | null,
+) {
   return {
     '@context': 'https://schema.org',
     '@type': 'NGO',
-    name: siteData.name[locale],
-    url: BASE_URL,
-    logo: `${BASE_URL}/logo-en.svg`,
-    sameAs: Object.values(siteData.social).filter(Boolean),
+    name: resolveSchemaSiteName(locale, site),
+    url: resolveSchemaSiteUrl(site),
+    logo: resolveSchemaLogoUrl(locale, site),
+    sameAs: resolveSchemaSameAs(site),
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'JO',
-      addressLocality: locale === 'ar' ? 'عمّان' : 'Amman',
+      addressLocality: resolveSchemaAddressLocality(locale, site),
     },
-    email: siteData.email,
-    telephone: siteData.phone,
+    email: site?.contact.email ?? siteData.email,
+    telephone: site?.contact.phone ?? siteData.phone,
   }
 }
 
-export function buildWebsiteSchema(locale: Locale) {
+export function buildWebsiteSchema(
+  locale: Locale,
+  site?: ResolvedSiteSettings | null,
+) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: siteData.name[locale],
-    url: BASE_URL,
+    name: resolveSchemaSiteName(locale, site),
+    url: resolveSchemaSiteUrl(site),
     inLanguage: locale === 'ar' ? 'ar' : 'en',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: `${BASE_URL}/${locale}/search?q={search_term_string}`,
+        urlTemplate: `${resolveSchemaSiteUrl(site)}/${locale}/search?q={search_term_string}`,
       },
       'query-input': 'required name=search_term_string',
     },
@@ -188,7 +241,10 @@ export function buildArticleSchema(opts: {
   image?: string
   authorName?: string
   locale: Locale
+  site?: ResolvedSiteSettings | null
 }) {
+  const orgName = resolveSchemaSiteName(opts.locale, opts.site)
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -198,11 +254,14 @@ export function buildArticleSchema(opts: {
     image: opts.image,
     author: opts.authorName
       ? { '@type': 'Person', name: opts.authorName }
-      : { '@type': 'Organization', name: siteData.name[opts.locale] },
+      : { '@type': 'Organization', name: orgName },
     publisher: {
       '@type': 'Organization',
-      name: siteData.name[opts.locale],
-      logo: { '@type': 'ImageObject', url: `${BASE_URL}/logo-en.svg` },
+      name: orgName,
+      logo: {
+        '@type': 'ImageObject',
+        url: resolveSchemaLogoUrl(opts.locale, opts.site),
+      },
     },
   }
 }
@@ -213,6 +272,7 @@ export function buildPublicationSchema(opts: {
   datePublished: string
   pdfUrl: string
   locale: Locale
+  site?: ResolvedSiteSettings | null
 }) {
   return {
     '@context': 'https://schema.org',
@@ -221,7 +281,10 @@ export function buildPublicationSchema(opts: {
     description: opts.description,
     datePublished: opts.datePublished,
     url: opts.pdfUrl,
-    publisher: { '@type': 'Organization', name: siteData.name[opts.locale] },
+    publisher: {
+      '@type': 'Organization',
+      name: resolveSchemaSiteName(opts.locale, opts.site),
+    },
     inLanguage: opts.locale === 'ar' ? 'ar' : 'en',
   }
 }

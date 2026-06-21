@@ -1,4 +1,5 @@
 import type { StatItem, HeroData } from '@/types'
+import { PLACEHOLDER_HERO } from '@/lib/placeholderImages'
 
 /** Intentional static fallback when CMS/API is unavailable — used by Hero and HomeStats. */
 export const heroData: HeroData = {
@@ -12,7 +13,7 @@ export const heroData: HeroData = {
   },
   ctaPrimary: { ar: 'اكتشف برامجنا', en: 'Explore Our Programs' },
   ctaSecondary: { ar: 'اقرأ تقاريرنا', en: 'View Our Reports' },
-  imagePlaceholder: 'https://picsum.photos/seed/werise-hero/1400/700',
+  imagePlaceholder: PLACEHOLDER_HERO,
 }
 
 export const statsData: StatItem[] = [

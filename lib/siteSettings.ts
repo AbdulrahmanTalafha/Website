@@ -1,6 +1,6 @@
 import { siteData } from '@/data/site'
 import type { CmsSettingsData } from '@/lib/cms'
-import { BASE_URL } from '@/lib/seo'
+import { BASE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo'
 import type { Locale } from '@/types'
 
 export type ResolvedSiteSettings = {
@@ -74,7 +74,7 @@ export function resolveSiteSettings(
   const connected = Boolean(cms)
   const footerFallback = footerDefaults(locale)
 
-  const defaultOg = `${BASE_URL}/og-default.png`
+  const defaultOg = DEFAULT_OG_IMAGE
 
   return {
     name:

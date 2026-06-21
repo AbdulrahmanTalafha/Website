@@ -1,4 +1,5 @@
 import type { Locale } from '@/types'
+import { rewriteLegacyImageUrl } from '@/lib/placeholderImages'
 
 const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL || 'http://127.0.0.1:8000'
 
@@ -42,7 +43,17 @@ export async function fetchSiteSearch(
 
     if (!res.ok) return null
 
-    return res.json() as Promise<SiteSearchResponse>
+    const data = (await res.json()) as SiteSearchResponse
+    return {
+      ...data,
+      groups: data.groups.map((group) => ({
+        ...group,
+        items: group.items.map((item) => ({
+          ...item,
+          image: item.image ? rewriteLegacyImageUrl(item.image) : item.image,
+        })),
+      })),
+    }
   } catch {
     return null
   }

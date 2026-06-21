@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPublicationSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getPublicationBySlug, getPublications } from '@/lib/api'
-import { getPublicationsData } from '@/lib/cms'
+import { getPublicationsData, getSettings } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import { publicationsData } from '@/data/publications'
 import {
@@ -100,7 +101,11 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
   if (!pub) notFound()
 
   const coverUnoptimized = isCmsHostedMediaUrl(pub.coverImage)
-  const allPublications = await getPublications(locale)
+  const [allPublications, settings] = await Promise.all([
+    getPublications(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const relatedPublications = (pub.relatedMaterials ?? [])
     .map((ref) => allPublications.find((p) => p.slug === ref || p.id === ref))
     .filter((p): p is Publication => Boolean(p))
@@ -129,6 +134,7 @@ export default async function PublicationDetailPage({ params, searchParams }: Pu
       datePublished: pub.publishDate,
       pdfUrl,
       locale,
+      site,
     }),
   ]
 

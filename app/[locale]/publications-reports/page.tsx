@@ -1,16 +1,19 @@
 import { Fragment, type ReactNode } from 'react'
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import PublicationsGrid from '@/components/publications/PublicationsGrid'
 import { getPublications, getPublicationsStats } from '@/lib/api'
-import { getPublicationsPageData } from '@/lib/cms'
+import { getSettings, getPublicationsPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolvePublicationsPageSeo } from '@/lib/publicationsPageSeo'
 import { resolvePublicationsPageSectionOrder } from '@/lib/publicationsPageSectionOrder'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface PageProps {
   params: Promise<{ locale: string }>
@@ -20,14 +23,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getPublicationsPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getPublicationsPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolvePublicationsPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/publications-reports`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -64,11 +71,13 @@ function buildHeroStats(
 
 export default async function PublicationsPage({ params }: PageProps) {
   const { locale } = await params as { locale: Locale }
-  const [publications, stats, pageCms] = await Promise.all([
+  const [publications, stats, pageCms, settings] = await Promise.all([
     getPublications(locale),
     getPublicationsStats(locale),
     getPublicationsPageData(locale),
+    getSettings(locale),
   ])
+  const site = resolveSiteSettings(settings, locale)
 
   const connected = cmsConnected(pageCms)
   const isRTL = locale === 'ar'
@@ -92,8 +101,8 @@ export default async function PublicationsPage({ params }: PageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'إصداراتنا' : 'Our Publications')
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-publications/1400/700')
-    : 'https://picsum.photos/seed/werise-publications/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-publications', 1400, 700))
+    : placeholderPhotoUrl('werise-publications', 1400, 700)
 
   const heroStats = buildHeroStats(
     connected,
@@ -156,6 +165,7 @@ export default async function PublicationsPage({ params }: PageProps) {
           description: seo.description,
           url: `${BASE_URL}/${locale}/publications-reports`,
           locale,
+          site,
         }),
       ]} />
 

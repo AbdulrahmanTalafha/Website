@@ -2,10 +2,12 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import { getNews, getNewsStats } from '@/lib/api'
-import { getMediaCenterPageData } from '@/lib/cms'
+import { getSettings, getMediaCenterPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl, isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import { resolveMediaCenterPageSeo } from '@/lib/mediaCenterPageSeo'
@@ -16,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { NewsItem, MediaCategory } from '@/types'
 import DesignSwitcher from '@/components/projects/DesignSwitcher'
+import { PLACEHOLDER_MEDIA_HERO } from '@/lib/placeholderImages'
 
 interface PageProps {
   params: Promise<{ locale: string }>
@@ -26,16 +29,20 @@ export const revalidate = 60
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const { v, tab } = await searchParams
-  const pageCms = await getMediaCenterPageData(locale)
+  const { v } = await searchParams
+  const [pageCms, settings] = await Promise.all([
+    getMediaCenterPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveMediaCenterPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/media-center`,
-    customTitle: seo.title,
-    customDescription: seo.description,
-    noIndex: seo.noIndex || Boolean(v || tab),
+    title: seo.title,
+    description: seo.description,
+    noIndex: seo.noIndex || Boolean(v),
   })
 }
 
@@ -236,11 +243,13 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
   const variant = 'classic' as 'dark' | 'light' | 'classic'
   const activeTab: MediaCategory | 'all' = (tab as MediaCategory | 'all') || 'all'
 
-  const [allNews, stats, pageCms] = await Promise.all([
+  const [allNews, stats, pageCms, settings] = await Promise.all([
     getNews(locale),
     getNewsStats(locale),
     getMediaCenterPageData(locale),
+    getSettings(locale),
   ])
+  const site = resolveSiteSettings(settings, locale)
   const connected = cmsConnected(pageCms)
   const cmsCategories = connected ? pageCms?.config?.categories : undefined
   const hero = pageCms?.sections?.hero
@@ -300,7 +309,7 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
   const heroImage = resolveCmsMediaUrl(
     hero?.background_image,
     undefined,
-    'https://picsum.photos/seed/werise-media-hero/1400/600',
+    PLACEHOLDER_MEDIA_HERO,
   )
 
   return (
@@ -315,6 +324,7 @@ export default async function MediaCenterPage({ params, searchParams }: PageProp
           description: pageDescription,
           url: `${BASE_URL}/${locale}/media-center`,
           locale,
+          site,
         }),
       ]} />
 

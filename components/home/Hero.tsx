@@ -3,9 +3,9 @@ import type { Locale } from '@/types'
 import { heroData } from '@/data/home'
 import type { CmsHomeData } from '@/lib/cms'
 import { getHeroSection } from '@/lib/cms'
-import { cmsAssetUrl } from '@/lib/cmsUrl'
+import { cmsAssetUrl, cmsUrl } from '@/lib/cmsUrl'
 import { cmsButton, cmsConnected, cmsText } from '@/lib/cmsHomeContent'
-import { cmsUrl } from '@/lib/cmsUrl'
+import { rewriteLegacyImageUrl } from '@/lib/placeholderImages'
 import { ArrowRight, ArrowLeft, ChevronDown } from 'lucide-react'
 
 interface HeroProps {
@@ -57,9 +57,11 @@ export default async function Hero({ locale, cmsData = null }: HeroProps) {
     locale,
   )
 
-  const backgroundImage = connected
-    ? cmsAssetUrl(cmsHero?.background_image)
-    : (cmsAssetUrl(cmsHero?.background_image) ?? heroData.imagePlaceholder)
+  const backgroundImage = rewriteLegacyImageUrl(
+    connected
+      ? cmsAssetUrl(cmsHero?.background_image) ?? heroData.imagePlaceholder
+      : (cmsAssetUrl(cmsHero?.background_image) ?? heroData.imagePlaceholder),
+  )
 
   const resolveUrl = (url: string) => cmsUrl(url, locale)
 

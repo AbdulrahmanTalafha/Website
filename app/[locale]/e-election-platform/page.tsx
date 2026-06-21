@@ -3,11 +3,15 @@ import type { Locale } from '@/types'
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildServiceSchema } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildServiceSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import Button from '@/components/common/Button'
 import ElectionCard from '@/components/election/ElectionCard'
 import { getElections } from '@/lib/api'
+import { getSettings } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import {
   Vote, Users, Shield, Lock, BarChart3,
   ArrowRight, ArrowLeft, Sparkles,
@@ -17,14 +21,16 @@ interface PageProps { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const settings = await getSettings(locale)
+  const site = resolveSiteSettings(settings, locale)
   const description = locale === 'ar'
     ? 'منصة We Rise الرقمية لإدارة انتخابات إلكترونية شفافة وآمنة للمنظمات المدنية والمؤسسات المجتمعية'
     : 'We Rise digital platform for managing transparent and secure electronic elections for civil society and community institutions'
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/e-election-platform`,
-    customTitle: locale === 'ar' ? 'منصة الانتخابات الإلكترونية' : 'E-Election Platform',
-    customDescription: description,
+    title: locale === 'ar' ? 'منصة الانتخابات الإلكترونية' : 'E-Election Platform',
+    description,
   })
 }
 
@@ -39,9 +45,13 @@ function SectionTitle({ children, accent }: { children: ReactNode; accent?: bool
 
 export default async function EElectionPage({ params }: PageProps) {
   const { locale } = await params as { locale: Locale }
+  const [elections, settings] = await Promise.all([
+    getElections(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const isRTL = locale === 'ar'
   const Arrow = isRTL ? ArrowLeft : ArrowRight
-  const elections = await getElections(locale)
 
   const active = elections.filter(e => e.status === 'active')
   const upcoming = elections.filter(e => e.status === 'upcoming')
@@ -107,13 +117,14 @@ export default async function EElectionPage({ params }: PageProps) {
           description: pageDescription,
           url: `${BASE_URL}/${locale}/e-election-platform`,
           locale,
+          site,
         }),
       ]} />
 
       {/* Hero */}
       <section id="about" className="relative min-h-[58vh] flex items-end overflow-hidden scroll-mt-24">
         <Image
-          src="https://picsum.photos/seed/werise-election-dark/1920/1080"
+          src={placeholderPhotoUrl('werise-election-dark', 1920, 1080)}
           alt=""
           fill
           className="object-cover opacity-25 scale-105"

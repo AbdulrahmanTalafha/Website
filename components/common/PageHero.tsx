@@ -1,6 +1,7 @@
 import type { Locale } from '@/types'
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
+import { PLACEHOLDER_HERO, rewriteLegacyImageUrl } from '@/lib/placeholderImages'
 
 interface StatItem {
   value: string
@@ -23,10 +24,11 @@ export default function PageHero({
   subtitle,
   badge,
   badgeHref,
-  image = 'https://picsum.photos/seed/werise-hero/1400/700',
+  image = PLACEHOLDER_HERO,
   stats,
 }: PageHeroProps) {
   const isRTL = locale === 'ar'
+  const heroImage = rewriteLegacyImageUrl(image)
 
   return (
     <section className="relative flex flex-col overflow-hidden" style={{ minHeight: '480px', height: '62vh' }} aria-label="Page Hero">
@@ -34,7 +36,7 @@ export default function PageHero({
       {/* Background image */}
       <div
         className="absolute inset-0 bg-cover bg-center scale-105"
-        style={{ backgroundImage: `url(${image})` }}
+        style={{ backgroundImage: `url(${heroImage})` }}
         aria-hidden="true"
       />
 

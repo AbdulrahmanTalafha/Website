@@ -224,6 +224,8 @@ export default function Header({ locale, logoSrc, logoAlt, social, navItems }: H
         isOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
         navItems={navItems}
+        logoSrc={resolvedLogo}
+        logoAlt={resolvedLogoAlt}
       />
     </>
   )

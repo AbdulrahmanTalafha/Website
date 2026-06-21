@@ -1,5 +1,6 @@
 import type { Locale, Project } from '@/types'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import type { CmsProjectsListRecord } from '@/lib/cms'
 
 function deriveGenderClassification(genders: ('male' | 'female')[]): Project['genderClassification'] {
@@ -11,7 +12,7 @@ function deriveGenderClassification(genders: ('male' | 'female')[]): Project['ge
 }
 
 export function mapCmsProjectToProject(record: CmsProjectsListRecord): Project {
-  const placeholder = `https://picsum.photos/seed/project-${record.id}/800/500`
+  const placeholder = placeholderPhotoUrl(`project-${record.id}`, 800, 500)
   const targetGenders = (record.target_genders ?? []) as ('male' | 'female')[]
   const governorateKeys = record.governorate_keys ?? []
   const governorateLabels = record.governorates ?? []

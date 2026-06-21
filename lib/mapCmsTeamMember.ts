@@ -1,5 +1,6 @@
 import type { Locale, TeamMember } from '@/types'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import type { CmsTeamMemberRecord } from '@/lib/cms'
 
 export function mapCmsTeamMemberToTeamMember(record: CmsTeamMemberRecord): TeamMember {
@@ -21,7 +22,7 @@ export function mapCmsTeamMemberToTeamMember(record: CmsTeamMemberRecord): TeamM
     photo: resolveCmsMediaUrl(
       record.photo,
       undefined,
-      `https://picsum.photos/seed/team-${record.slug}/400/400`,
+      placeholderPhotoUrl(`team-${record.slug}`, 400, 400),
     ),
     order: record.sort_order ?? 0,
   }

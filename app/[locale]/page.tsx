@@ -24,6 +24,7 @@ import { resolveHomeSectionOrder } from '@/lib/homeSectionOrder'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
 import { resolveSiteSettings } from '@/lib/siteSettings'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import { cmsUrl } from '@/lib/cmsUrl'
 import { mapCmsNewsToNewsItem } from '@/lib/mapCmsNews'
 import type { CmsPublicationRecord, CmsProjectRecord, CmsInitiativeRecord, CmsNewsRecord } from '@/lib/cms'
@@ -61,14 +62,16 @@ export default async function HomePage({ params }: HomePageProps) {
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight
   const loc = locale as Locale
 
-  const [projects, publications, news, observatory, initiatives, cmsData] = await Promise.all([
+  const [projects, publications, news, observatory, initiatives, cmsData, settings] = await Promise.all([
     getProjects(locale),
     getPublications(locale),
     getNews(locale),
     getObservatoryData(locale),
     getInitiatives(locale),
     getHomeData(locale),
+    getSettings(locale),
   ])
+  const site = resolveSiteSettings(settings, locale)
 
   // ─── CMS section helpers ─────────────────────────────────
   const connected = cmsConnected(cmsData)
@@ -186,7 +189,7 @@ export default async function HomePage({ params }: HomePageProps) {
         image: resolveCmsMediaUrl(
           (r as CmsPublicationRecord).cover_image ?? (r as CmsPublicationRecord).image,
           publications.find((pub) => pub.slug === (r as CmsPublicationRecord).slug)?.coverImage,
-          `https://picsum.photos/seed/pub-${(r as CmsPublicationRecord).slug}/800/500`,
+          placeholderPhotoUrl(`pub-${(r as CmsPublicationRecord).slug}`, 800, 500),
         ),
         badge: loc === 'ar'
           ? ((r as CmsPublicationRecord).type === 'guide' ? 'دليل' : (r as CmsPublicationRecord).type === 'report' ? 'تقرير' : (r as CmsPublicationRecord).type === 'study' ? 'دراسة' : (r as CmsPublicationRecord).type === 'brief' ? 'موجز' : 'إصدار')
@@ -232,7 +235,7 @@ export default async function HomePage({ params }: HomePageProps) {
         image: resolveCmsMediaUrl(
           (r as CmsProjectRecord).featured_image ?? (r as CmsProjectRecord).image,
           projects.find((proj) => proj.slug === (r as CmsProjectRecord).slug)?.featuredImage,
-          `https://picsum.photos/seed/proj-${(r as CmsProjectRecord).slug}/800/500`,
+          placeholderPhotoUrl(`proj-${(r as CmsProjectRecord).slug}`, 800, 500),
         ),
         badge: (r as CmsProjectRecord).sector ?? (loc === 'ar' ? 'مشروع' : 'Project'),
         date: (r as CmsProjectRecord).start_date
@@ -276,7 +279,7 @@ export default async function HomePage({ params }: HomePageProps) {
         image: resolveCmsMediaUrl(
           (r as CmsInitiativeRecord).featured_image ?? (r as CmsInitiativeRecord).image,
           initiatives.find((init) => init.slug === (r as CmsInitiativeRecord).slug)?.featuredImage,
-          `https://picsum.photos/seed/init-${(r as CmsInitiativeRecord).slug}/800/500`,
+          placeholderPhotoUrl(`init-${(r as CmsInitiativeRecord).slug}`, 800, 500),
         ),
         badge: loc === 'ar' ? 'مبادرة' : 'Initiative',
         date: (r as CmsInitiativeRecord).start_date
@@ -372,7 +375,7 @@ export default async function HomePage({ params }: HomePageProps) {
         logo: resolveCmsMediaUrl(
           p.logo,
           staticPartnerLogoByNameEn(p.name_en ?? '', partnersData),
-          `https://picsum.photos/seed/partner-${p.id}/200/80`,
+          placeholderPhotoUrl(`partner-${p.id}`, 200, 80),
         ),
         website: p.website_url ?? undefined,
         category: p.category,
@@ -507,8 +510,8 @@ export default async function HomePage({ params }: HomePageProps) {
   )
   const showContactSection = cmsSectionVisible(connected, cms, 'contact_cta') && (!connected || contactTitle || contactDesc || contactBtn1 || contactBtn2)
 
-  const orgSchema = buildOrganizationSchema(locale)
-  const webSchema = buildWebsiteSchema(locale)
+  const orgSchema = buildOrganizationSchema(locale, site)
+  const webSchema = buildWebsiteSchema(locale, site)
   const sectionOrder = resolveHomeSectionOrder(cmsData, connected)
 
   const sectionBlocks: Record<string, ReactNode> = {

@@ -1,5 +1,6 @@
 import type { Locale, Publication, PublicationType } from '@/types'
 import { cmsAbsoluteMediaUrl, resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 import type { CmsPublicationListRecord } from '@/lib/cms'
 
 function cmsSummary(value: string | null | undefined): string {
@@ -32,7 +33,7 @@ function resolvePdfUrl(url: string | null | undefined): string {
 }
 
 export function mapCmsPublicationToPublication(record: CmsPublicationListRecord): Publication {
-  const placeholder = `https://picsum.photos/seed/pub-${record.slug}/400/560`
+  const placeholder = placeholderPhotoUrl(`pub-${record.slug}`, 400, 560)
 
   return {
     id: String(record.id),

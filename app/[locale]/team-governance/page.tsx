@@ -1,18 +1,21 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPersonSchema } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildPersonSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import SectionHeader from '@/components/common/SectionHeader'
 import TeamMemberCard from '@/components/team/TeamMemberCard'
 import TeamOrgChart from '@/components/team/TeamOrgChart'
 import { getTeam } from '@/lib/api'
-import { getTeamPageData } from '@/lib/cms'
+import { getSettings, getTeamPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsSectionVisible, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolveTeamPageSeo } from '@/lib/teamPageSeo'
 import { governanceData } from '@/data/team'
 import { Building } from 'lucide-react'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface TeamPageProps {
   params: Promise<{ locale: string }>
@@ -22,14 +25,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: TeamPageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getTeamPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getTeamPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveTeamPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/team-governance`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -91,8 +98,8 @@ export default async function TeamPage({ params }: TeamPageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'فريقنا' : 'Our Team') ?? ''
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-team/1400/700')
-    : 'https://picsum.photos/seed/werise-team/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-team', 1400, 700))
+    : placeholderPhotoUrl('werise-team', 1400, 700)
 
   const heroStats = buildHeroStats(
     connected,

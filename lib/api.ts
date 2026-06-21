@@ -19,6 +19,7 @@ import { mapCmsNewsToNewsItem } from '@/lib/mapCmsNews'
 import { mapCmsTeamMemberToTeamMember } from '@/lib/mapCmsTeamMember'
 import { mapCmsProjectToProject, projectMatchesGovernorate } from '@/lib/mapCmsProject'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { placeholderPhotoUrl, rewriteLegacyImageUrl } from '@/lib/placeholderImages'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
 import type { PartnerCategory } from '@/types'
 
@@ -32,6 +33,41 @@ import type { PartnerCategory } from '@/types'
 //   const data = await res.json()
 //   return data
 // ─────────────────────────────────────────────────────────────────────────────
+
+function normalizeNewsItem(item: NewsItem): NewsItem {
+  return { ...item, image: rewriteLegacyImageUrl(item.image) }
+}
+
+function normalizeProject(item: Project): Project {
+  return {
+    ...item,
+    featuredImage: rewriteLegacyImageUrl(item.featuredImage),
+    images: item.images.map(rewriteLegacyImageUrl),
+  }
+}
+
+function normalizePublication(item: Publication): Publication {
+  return { ...item, coverImage: rewriteLegacyImageUrl(item.coverImage) }
+}
+
+function normalizeInitiative(item: Initiative): Initiative {
+  return {
+    ...item,
+    featuredImage: rewriteLegacyImageUrl(item.featuredImage),
+    images: item.images.map(rewriteLegacyImageUrl),
+  }
+}
+
+function normalizeTeamMember(item: TeamMember): TeamMember {
+  return { ...item, photo: rewriteLegacyImageUrl(item.photo) }
+}
+
+function normalizePartner(item: Partner): Partner {
+  return {
+    ...item,
+    logo: item.logo ? rewriteLegacyImageUrl(item.logo) : item.logo,
+  }
+}
 
 export async function getHomePage(locale: Locale) {
   // TODO: Replace with API call: GET /api/home?locale={locale}
@@ -53,7 +89,7 @@ export async function getProjects(locale: Locale, filters?: {
 
   let projects = cms?.records?.length
     ? cms.records.map(mapCmsProjectToProject)
-    : [...projectsData]
+    : projectsData.map(normalizeProject)
 
   if (filters?.year) {
     projects = projects.filter(p => p.startDate.startsWith(filters.year!))
@@ -115,7 +151,8 @@ export async function getProjectBySlug(locale: Locale, slug: string): Promise<Pr
   const record = cms?.records?.find(p => p.slug === slug)
   if (record) return mapCmsProjectToProject(record)
 
-  return projectsData.find(p => p.slug === slug) ?? null
+  const staticProject = projectsData.find(p => p.slug === slug)
+  return staticProject ? normalizeProject(staticProject) : null
 }
 
 export async function getPublications(locale: Locale, filters?: {
@@ -127,7 +164,7 @@ export async function getPublications(locale: Locale, filters?: {
 
   let pubs = cms?.records?.length
     ? cms.records.map(mapCmsPublicationToPublication)
-    : [...publicationsData]
+    : publicationsData.map(normalizePublication)
 
   if (filters?.type) {
     pubs = pubs.filter(p => p.type === filters.type)
@@ -165,7 +202,8 @@ export async function getPublicationBySlug(locale: Locale, slug: string): Promis
     if (record) return mapCmsPublicationToPublication(record)
   }
 
-  return publicationsData.find(p => p.slug === slug) ?? null
+  const staticPub = publicationsData.find(p => p.slug === slug)
+  return staticPub ? normalizePublication(staticPub) : null
 }
 
 export async function getNews(locale: Locale, category?: string): Promise<NewsItem[]> {
@@ -173,7 +211,7 @@ export async function getNews(locale: Locale, category?: string): Promise<NewsIt
 
   let items = cms?.records?.length
     ? cms.records.map(mapCmsNewsToNewsItem)
-    : [...newsData]
+    : newsData.map(normalizeNewsItem)
 
   if (category) {
     items = items.filter(n => n.category === category)
@@ -205,15 +243,18 @@ export async function getNewsBySlug(locale: Locale, slug: string): Promise<NewsI
     if (record) return mapCmsNewsToNewsItem(record)
   }
 
-  return newsData.find(n => n.slug === slug) ?? null
+  const staticNews = newsData.find(n => n.slug === slug)
+  return staticNews ? normalizeNewsItem(staticNews) : null
 }
 
 export async function getInitiatives(locale: Locale, category?: string): Promise<Initiative[]> {
   const cms = await getInitiativesData(locale)
 
   if (!cms?.records?.length) {
-    if (category) return initiativesData.filter(i => i.category === category)
-    return initiativesData
+    const items = category
+      ? initiativesData.filter(i => i.category === category)
+      : initiativesData
+    return items.map(normalizeInitiative)
   }
 
   const initiatives = cms.records.map(mapCmsInitiativeToInitiative)
@@ -242,7 +283,8 @@ export async function getInitiativeBySlug(locale: Locale, slug: string): Promise
     if (record) return mapCmsInitiativeToInitiative(record)
   }
 
-  return initiativesData.find(i => i.slug === slug) ?? null
+  const staticInitiative = initiativesData.find(i => i.slug === slug)
+  return staticInitiative ? normalizeInitiative(staticInitiative) : null
 }
 
 export async function getTeam(locale: Locale): Promise<TeamMember[]> {
@@ -252,7 +294,7 @@ export async function getTeam(locale: Locale): Promise<TeamMember[]> {
     return cms.records.map(mapCmsTeamMemberToTeamMember)
   }
 
-  return teamData.sort((a, b) => a.order - b.order)
+  return teamData.map(normalizeTeamMember).sort((a, b) => a.order - b.order)
 }
 
 export async function getObservatoryData(locale: Locale): Promise<{
@@ -260,19 +302,28 @@ export async function getObservatoryData(locale: Locale): Promise<{
   reports: ObservatoryReport[]
 }> {
   // TODO: Replace with API call: GET /api/observatory?locale={locale}
-  return { stats: observatoryStats, reports: observatoryReports }
+  return {
+    stats: observatoryStats,
+    reports: observatoryReports.map((report) => ({
+      ...report,
+      coverImage: rewriteLegacyImageUrl(report.coverImage),
+    })),
+  }
 }
 
 export async function getElections(locale: Locale): Promise<Election[]> {
   // TODO: Replace with API call: GET /api/elections?locale={locale}
-  return electionsData
+  return electionsData.map((election) => ({
+    ...election,
+    image: rewriteLegacyImageUrl(election.image),
+  }))
 }
 
 export async function getPartners(locale: Locale): Promise<Partner[]> {
   const cms = await getPartnersData(locale)
 
   if (!cms?.records?.length) {
-    return partnersData
+    return partnersData.map(normalizePartner)
   }
 
   return cms.records.map((partner) => ({
@@ -284,7 +335,7 @@ export async function getPartners(locale: Locale): Promise<Partner[]> {
     logo: resolveCmsMediaUrl(
       partner.logo,
       staticPartnerLogoByNameEn(partner.name_en, partnersData),
-      `https://picsum.photos/seed/partner-${partner.id}/200/80`,
+      placeholderPhotoUrl(`partner-${partner.id}`, 200, 80),
     ),
     website: partner.website_url ?? undefined,
     category: partner.category as PartnerCategory,

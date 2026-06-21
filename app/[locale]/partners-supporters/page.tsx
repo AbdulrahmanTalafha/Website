@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import PartnersList from '@/components/partners/PartnersList'
 import { getPartners } from '@/lib/api'
-import { getPartnersPageData } from '@/lib/cms'
+import { getSettings, getPartnersPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolvePartnersPageSeo } from '@/lib/partnersPageSeo'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface PageProps {
   params: Promise<{ locale: string }>
@@ -18,14 +21,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getPartnersPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getPartnersPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolvePartnersPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/partners-supporters`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -84,8 +91,8 @@ export default async function PartnersPage({ params }: PageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'شركاؤنا' : 'Our Partners')
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-partners/1400/700')
-    : 'https://picsum.photos/seed/werise-partners/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-partners', 1400, 700))
+    : placeholderPhotoUrl('werise-partners', 1400, 700)
 
   const heroStats = buildHeroStats(
     connected,

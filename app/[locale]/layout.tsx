@@ -8,6 +8,7 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ScrollReveal from '@/components/layout/ScrollReveal'
 import AutoBreadcrumb from '@/components/layout/AutoBreadcrumb'
+import SiteAnalytics from '@/components/analytics/SiteAnalytics'
 import { getSettings, getNavigationData } from '@/lib/cms'
 import { resolveSiteSettings } from '@/lib/siteSettings'
 import { mapCmsFooterNav, mapCmsHeaderNav } from '@/lib/mapNavigation'
@@ -42,6 +43,7 @@ export async function generateMetadata({ params }: LocaleLayoutProps): Promise<M
   const faviconType = site.branding.favicon.endsWith('.svg')
     ? 'image/svg+xml'
     : undefined
+  const googleVerification = site.analytics.googleSiteVerification?.trim()
 
   return {
     title: {
@@ -50,12 +52,16 @@ export async function generateMetadata({ params }: LocaleLayoutProps): Promise<M
         : `%s | ${site.name}`,
       default: site.name,
     },
+    description: site.seo.defaultDescription,
     icons: {
       icon: [
         { url: site.branding.favicon, type: faviconType },
       ],
       apple: [{ url: site.branding.appleTouchIcon }],
     },
+    ...(googleVerification
+      ? { verification: { google: googleVerification } }
+      : {}),
   }
 }
 
@@ -72,6 +78,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <html lang={locale} dir={dir}>
       <body className={`${inter.variable} ${cairo.variable} min-h-screen flex flex-col bg-neutral-50 ${dir === 'rtl' ? 'font-arabic' : 'font-sans'}`}>
+        <SiteAnalytics
+          googleAnalyticsId={site.analytics.googleAnalyticsId}
+          googleTagManagerId={site.analytics.googleTagManagerId}
+        />
         <Header
           locale={locale as Locale}
           logoSrc={site.branding.logoSrc}

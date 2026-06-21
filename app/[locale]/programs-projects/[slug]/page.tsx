@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { BASE_URL, buildArticleSchema, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getProjectBySlug, getNews, getPublications, getProjects } from '@/lib/api'
+import { getSettings } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import {
   projectBeneficiarySummary,
@@ -71,7 +73,12 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
   const ArrowBack = isRTL ? ArrowRight : ArrowLeft
   const status = statusConfig[project.status]
 
-  const [allNews, allPubs] = await Promise.all([getNews(locale), getPublications(locale)])
+  const [allNews, allPubs, settings] = await Promise.all([
+    getNews(locale),
+    getPublications(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const relatedNews = allNews.filter(n => project.relatedNews?.includes(n.id))
   const relatedPubs = allPubs.filter(p => project.relatedPublications?.includes(p.id))
 
@@ -100,6 +107,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Projec
       datePublished: project.startDate,
       image: project.featuredImage,
       locale,
+      site,
     }),
   ]
 

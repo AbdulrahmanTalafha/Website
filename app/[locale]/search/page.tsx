@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import { Suspense } from 'react'
-import { buildMetadata } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
+import { getSettings } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import Breadcrumbs from '@/components/common/Breadcrumbs'
 import SearchPageClient from '@/components/search/SearchPageClient'
 
@@ -11,10 +13,14 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  return buildMetadata({
+  const settings = await getSettings(locale)
+  const site = resolveSiteSettings(settings, locale)
+
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/search`,
-    customTitle: locale === 'ar' ? 'البحث' : 'Search',
+    title: locale === 'ar' ? 'البحث' : 'Search',
+    description: site.seo.defaultDescription,
     noIndex: true,
   })
 }

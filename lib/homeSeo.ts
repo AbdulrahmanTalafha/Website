@@ -1,7 +1,7 @@
 import type { CmsHomeData } from '@/lib/cms'
 import type { ResolvedSiteSettings } from '@/lib/siteSettings'
 import type { Locale } from '@/types'
-import { BASE_URL } from '@/lib/seo'
+import { BASE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo'
 
 export const HOME_SEO_DEFAULTS: Record<
   Locale,
@@ -11,13 +11,13 @@ export const HOME_SEO_DEFAULTS: Record<
     title: 'We Rise Center for Citizenship & Development',
     description:
       'We Rise Center for Citizenship & Development — A Jordanian civil organization working in active citizenship, democracy, human rights, and digital rights',
-    ogImage: `${BASE_URL}/og-default.png`,
+    ogImage: DEFAULT_OG_IMAGE,
   },
   ar: {
     title: 'مركز We Rise للمواطنة والتنمية',
     description:
       'مركز We Rise للمواطنة والتنمية — منظمة مدنية أردنية تعمل في المواطنة الفاعلة، الديمقراطية، حقوق الإنسان، والحقوق الرقمية',
-    ogImage: `${BASE_URL}/og-default.png`,
+    ogImage: DEFAULT_OG_IMAGE,
   },
 }
 

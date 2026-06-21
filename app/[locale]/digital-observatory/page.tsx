@@ -2,9 +2,11 @@ import type { Metadata } from 'next'
 import type { Locale } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import { buildMetadata } from '@/lib/seo'
 import { getObservatoryData } from '@/lib/api'
-import { getObservatoryPageData } from '@/lib/cms'
+import { getSettings, getObservatoryPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { cmsAbsoluteMediaUrl } from '@/lib/cmsMedia'
 import { resolveObservatoryPageSeo } from '@/lib/observatoryPageSeo'
@@ -29,6 +31,7 @@ import {
 } from 'lucide-react'
 import DesignSwitcher from '@/components/projects/DesignSwitcher'
 import ReportForm from '@/components/observatory/ReportForm'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 const CLASSIFICATION_ICONS: Record<string, typeof AlertTriangle> = {
   'hate-speech': AlertTriangle,
@@ -85,15 +88,19 @@ export const revalidate = 60
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
   const { v } = await searchParams
-  const pageCms = await getObservatoryPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getObservatoryPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveObservatoryPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/digital-observatory`,
-    customTitle: seo.title,
-    customDescription: seo.description,
-    noIndex: Boolean(v) || seo.noIndex,
+    title: seo.title,
+    description: seo.description,
+    noIndex: seo.noIndex || Boolean(v),
   })
 }
 
@@ -732,7 +739,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
                   className={`group rounded-3xl overflow-hidden transition-all block ${V.card} ${V.cardHov}`}
                 >
                   <div className="relative aspect-video overflow-hidden bg-neutral-800">
-                    <Image src={report.coverImage || 'https://picsum.photos/seed/obs-report/400/225'} alt={report.title[locale as Locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="400px" />
+                    <Image src={report.coverImage || placeholderPhotoUrl('obs-report', 400, 225)} alt={report.title[locale as Locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="400px" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <div className={`absolute top-3 start-3 inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${V.badge}`}>
                       <FileBarChart2 className="w-3 h-3" />

@@ -1,11 +1,13 @@
 import { Fragment, type ReactNode } from 'react'
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import { getProjects, getProjectsStats } from '@/lib/api'
-import { getProjectsPageData } from '@/lib/cms'
+import { getSettings, getProjectsPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolveProjectsPageSeo } from '@/lib/projectsPageSeo'
@@ -14,6 +16,7 @@ import { formatBeneficiaryCountPlus } from '@/lib/mapCmsProject'
 import ProjectsGrid from '@/components/projects/ProjectsGrid'
 import ProjectsDashboard from '@/components/projects/ProjectsDashboard'
 import ProjectsKpiRow from '@/components/projects/ProjectsKpiRow'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface ProjectsPageProps {
   params: Promise<{ locale: string }>
@@ -23,14 +26,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: ProjectsPageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getProjectsPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getProjectsPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveProjectsPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/programs-projects`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -69,11 +76,13 @@ function buildHeroStats(
 
 export default async function ProjectsPage({ params }: ProjectsPageProps) {
   const { locale } = await params as { locale: Locale }
-  const [projects, stats, pageCms] = await Promise.all([
+  const [projects, stats, pageCms, settings] = await Promise.all([
     getProjects(locale),
     getProjectsStats(locale),
     getProjectsPageData(locale),
+    getSettings(locale),
   ])
+  const site = resolveSiteSettings(settings, locale)
 
   const connected = cmsConnected(pageCms)
   const isRTL = locale === 'ar'
@@ -97,8 +106,8 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'برامجنا' : 'Our Programs')
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-programs/1400/700')
-    : 'https://picsum.photos/seed/werise-programs/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-programs', 1400, 700))
+    : placeholderPhotoUrl('werise-programs', 1400, 700)
 
   const heroStats = buildHeroStats(
     connected,
@@ -165,6 +174,7 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
           description: seo.description,
           url: `${BASE_URL}/${locale}/programs-projects`,
           locale,
+          site,
         }),
       ]} />
 

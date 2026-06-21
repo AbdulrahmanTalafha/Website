@@ -1,17 +1,20 @@
 import { Fragment, type ReactNode } from 'react'
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema, buildMetadata } from '@/lib/seo'
+import { BASE_URL, buildBreadcrumbSchema, buildCollectionPageSchema } from '@/lib/seo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import InitiativesGrid from '@/components/initiatives/InitiativesGrid'
 import InitiativesKpiRow from '@/components/initiatives/InitiativesKpiRow'
 import { getInitiatives, getInitiativesStats } from '@/lib/api'
-import { getInitiativesPageData } from '@/lib/cms'
+import { getSettings, getInitiativesPageData } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { resolveInitiativesPageSeo } from '@/lib/initiativesPageSeo'
 import { resolveInitiativesPageSectionOrder } from '@/lib/initiativesPageSectionOrder'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface PageProps {
   params: Promise<{ locale: string }>
@@ -21,14 +24,18 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getInitiativesPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getInitiativesPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveInitiativesPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/initiatives-campaigns`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
@@ -65,11 +72,13 @@ function buildHeroStats(
 
 export default async function InitiativesPage({ params }: PageProps) {
   const { locale } = await params as { locale: Locale }
-  const [initiatives, stats, pageCms] = await Promise.all([
+  const [initiatives, stats, pageCms, settings] = await Promise.all([
     getInitiatives(locale),
     getInitiativesStats(locale),
     getInitiativesPageData(locale),
+    getSettings(locale),
   ])
+  const site = resolveSiteSettings(settings, locale)
 
   const connected = cmsConnected(pageCms)
   const isRTL = locale === 'ar'
@@ -93,8 +102,8 @@ export default async function InitiativesPage({ params }: PageProps) {
   const pageBadge = cmsText(connected, hero?.badge, isRTL ? 'مبادراتنا' : 'Our Initiatives')
 
   const heroImage = connected && hero?.background_image
-    ? resolveCmsMediaUrl(hero.background_image, undefined, 'https://picsum.photos/seed/werise-initiatives/1400/700')
-    : 'https://picsum.photos/seed/werise-initiatives/1400/700'
+    ? resolveCmsMediaUrl(hero.background_image, undefined, placeholderPhotoUrl('werise-initiatives', 1400, 700))
+    : placeholderPhotoUrl('werise-initiatives', 1400, 700)
 
   const defaultLabels = isRTL
     ? ['مبادرة وحملة', 'نشاط جارٍ']
@@ -162,6 +171,7 @@ export default async function InitiativesPage({ params }: PageProps) {
           description: seo.description,
           url: `${BASE_URL}/${locale}/initiatives-campaigns`,
           locale,
+          site,
         }),
       ]} />
 

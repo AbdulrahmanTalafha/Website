@@ -1,13 +1,16 @@
 import type { Metadata } from 'next'
 import type { Locale } from '@/types'
-import { BASE_URL, buildMetadata, buildOrganizationSchema, buildBreadcrumbSchema } from '@/lib/seo'
+import { BASE_URL, buildOrganizationSchema, buildBreadcrumbSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import AboutContent from '@/components/about/AboutContent'
-import { getAboutPageData } from '@/lib/cms'
+import { resolveAboutPageSeo } from '@/lib/aboutPageSeo'
+import { buildCmsPageMetadata } from '@/lib/buildCmsPageMetadata'
+import { getAboutPageData, getSettings } from '@/lib/cms'
 import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
-import { resolveAboutPageSeo } from '@/lib/aboutPageSeo'
+import { resolveSiteSettings } from '@/lib/siteSettings'
+import { placeholderPhotoUrl } from '@/lib/placeholderImages'
 
 interface AboutPageProps {
   params: Promise<{ locale: string }>
@@ -17,21 +20,29 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: AboutPageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getAboutPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getAboutPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
   const seo = resolveAboutPageSeo(pageCms, locale)
 
-  return buildMetadata({
+  return buildCmsPageMetadata(site, {
     locale,
     canonicalPath: `/${locale}/about`,
-    customTitle: seo.title,
-    customDescription: seo.description,
+    title: seo.title,
+    description: seo.description,
     noIndex: seo.noIndex,
   })
 }
 
 export default async function AboutPage({ params }: AboutPageProps) {
   const { locale } = await params as { locale: Locale }
-  const pageCms = await getAboutPageData(locale)
+  const [pageCms, settings] = await Promise.all([
+    getAboutPageData(locale),
+    getSettings(locale),
+  ])
+  const site = resolveSiteSettings(settings, locale)
 
   const connected = cmsConnected(pageCms)
   const isRTL = locale === 'ar'
@@ -52,11 +63,11 @@ export default async function AboutPage({ params }: AboutPageProps) {
   const heroImage = resolveCmsMediaUrl(
     hero?.background_image,
     undefined,
-    'https://picsum.photos/seed/werise-about/1400/700',
+    placeholderPhotoUrl('werise-about', 1400, 700),
   )
 
   const schemas = [
-    buildOrganizationSchema(locale),
+    buildOrganizationSchema(locale, site),
     buildBreadcrumbSchema([
       { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
       { name: isRTL ? 'من نحن' : 'About Us', url: `${BASE_URL}/${locale}/about` },

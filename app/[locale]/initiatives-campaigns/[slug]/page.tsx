@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { BASE_URL, buildArticleSchema, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getInitiativeBySlug, getInitiatives, getProjectBySlug } from '@/lib/api'
+import { getSettings } from '@/lib/cms'
+import { resolveSiteSettings } from '@/lib/siteSettings'
 import { projectsData } from '@/data/projects'
 import { formatInitiativeReach } from '@/lib/initiativeDisplay'
 import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
@@ -64,6 +66,9 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
   const initiative = await getInitiativeBySlug(locale, slug)
   if (!initiative) notFound()
 
+  const settings = await getSettings(locale)
+  const site = resolveSiteSettings(settings, locale)
+
   const isRTL = locale === 'ar'
   const ArrowBack = isRTL ? ArrowRight : ArrowLeft
   const Chevron = isRTL ? ChevronLeft : ChevronRight
@@ -96,6 +101,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
           datePublished: initiative.startDate,
           image: initiative.featuredImage,
           locale,
+          site,
         })]
       : []),
   ]

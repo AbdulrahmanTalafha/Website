@@ -1,9 +1,12 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import type { Locale } from '@/types'
 import type { ResolvedNavItem } from '@/lib/mapNavigation'
 import { navItemUrl } from '@/lib/mapNavigation'
+import { isExternalAsset } from '@/lib/siteSettings'
+import { siteData } from '@/data/site'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
@@ -13,11 +16,17 @@ interface MobileNavProps {
   isOpen: boolean
   onClose: () => void
   navItems: ResolvedNavItem[]
+  logoSrc?: string
+  logoAlt?: string
 }
 
-export default function MobileNav({ locale, isOpen, onClose, navItems }: MobileNavProps) {
+export default function MobileNav({ locale, isOpen, onClose, navItems, logoSrc, logoAlt }: MobileNavProps) {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  const resolvedLogo = logoSrc ?? (locale === 'ar' ? '/logo-ar.svg' : '/logo-en.svg')
+  const resolvedLogoAlt = logoAlt ?? siteData.name[locale]
+  const logoExternal = isExternalAsset(resolvedLogo)
 
   return (
     <>
@@ -42,9 +51,17 @@ export default function MobileNav({ locale, isOpen, onClose, navItems }: MobileN
           <Link
             href={`/${locale}`}
             onClick={onClose}
-            className="font-bold text-primary-500 text-lg"
+            className="inline-flex"
+            aria-label={resolvedLogoAlt}
           >
-            {locale === 'ar' ? 'مركز We Rise' : 'We Rise Center'}
+            <Image
+              src={resolvedLogo}
+              alt={resolvedLogoAlt}
+              width={140}
+              height={40}
+              className="h-9 w-auto"
+              unoptimized={logoExternal}
+            />
           </Link>
           <button
             onClick={onClose}
