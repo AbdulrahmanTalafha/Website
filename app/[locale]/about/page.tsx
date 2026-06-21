@@ -4,34 +4,62 @@ import { BASE_URL, buildMetadata, buildOrganizationSchema, buildBreadcrumbSchema
 import JsonLd from '@/components/common/JsonLd'
 import PageHero from '@/components/common/PageHero'
 import AboutContent from '@/components/about/AboutContent'
-import { getAboutPage } from '@/lib/api'
-import { partnersData } from '@/data/partners'
+import { getAboutPageData } from '@/lib/cms'
+import { cmsConnected, cmsText } from '@/lib/cmsHomeContent'
+import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
+import { resolveAboutPageSeo } from '@/lib/aboutPageSeo'
 
 interface AboutPageProps {
   params: Promise<{ locale: string }>
 }
 
+export const revalidate = 60
+
 export async function generateMetadata({ params }: AboutPageProps): Promise<Metadata> {
   const { locale } = await params as { locale: Locale }
+  const pageCms = await getAboutPageData(locale)
+  const seo = resolveAboutPageSeo(pageCms, locale)
+
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/about`,
-    customTitle: locale === 'ar' ? 'من نحن' : 'About Us',
-    customDescription: locale === 'ar'
-      ? 'تعرف على مركز We Rise للمواطنة والتنمية — رؤيتنا، رسالتنا، قيمنا، ومجالات عملنا'
-      : 'Learn about We Rise Center for Citizenship & Development — our vision, mission, values, and work areas',
+    customTitle: seo.title,
+    customDescription: seo.description,
+    noIndex: seo.noIndex,
   })
 }
 
 export default async function AboutPage({ params }: AboutPageProps) {
   const { locale } = await params as { locale: Locale }
-  const about = await getAboutPage(locale)
+  const pageCms = await getAboutPageData(locale)
+
+  const connected = cmsConnected(pageCms)
+  const isRTL = locale === 'ar'
+  const hero = pageCms?.sections?.hero
+
+  const pageTitle = cmsText(
+    connected,
+    hero?.title,
+    isRTL ? 'عن المركز' : 'About the Center',
+  ) ?? (isRTL ? 'عن المركز' : 'About the Center')
+
+  const pageBadge = cmsText(
+    connected,
+    hero?.badge,
+    isRTL ? 'مركز نحن ننهض' : 'We Rise Center',
+  )
+
+  const heroImage = resolveCmsMediaUrl(
+    hero?.background_image,
+    undefined,
+    'https://picsum.photos/seed/werise-about/1400/700',
+  )
 
   const schemas = [
     buildOrganizationSchema(locale),
     buildBreadcrumbSchema([
-      { name: locale === 'ar' ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
-      { name: locale === 'ar' ? 'من نحن' : 'About Us', url: `${BASE_URL}/${locale}/about` },
+      { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
+      { name: isRTL ? 'من نحن' : 'About Us', url: `${BASE_URL}/${locale}/about` },
     ]),
   ]
 
@@ -41,20 +69,13 @@ export default async function AboutPage({ params }: AboutPageProps) {
 
       <PageHero
         locale={locale}
-        title={locale === 'ar' ? 'من نحن' : 'About Us'}
-        subtitle={about.intro[locale]}
-        badge={locale === 'ar' ? 'تعرف علينا' : 'Who We Are'}
-        image="https://picsum.photos/seed/werise-about/1400/700"
-        stats={[
-          { value: '2018', label: locale === 'ar' ? 'سنة التأسيس' : 'Founded' },
-          { value: '47+', label: locale === 'ar' ? 'مشروع منفَّذ' : 'Projects' },
-          { value: '85K+', label: locale === 'ar' ? 'مستفيد مباشر' : 'Beneficiaries' },
-          { value: '12', label: locale === 'ar' ? 'محافظة مُغطَّاة' : 'Governorates' },
-        ]}
+        title={pageTitle ?? ''}
+        badge={pageBadge ?? undefined}
+        image={heroImage}
       />
 
       <div className="bg-white">
-        <AboutContent locale={locale} about={about} partners={partnersData} />
+        <AboutContent locale={locale} pageCms={pageCms} connected={connected} />
       </div>
     </>
   )

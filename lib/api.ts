@@ -12,10 +12,11 @@ import { electionsData } from '@/data/elections'
 import { partnersData } from '@/data/partners'
 import { homeData } from '@/data/home'
 import { aboutData } from '@/data/about'
-import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData, getPublicationsData, getPublicationRecordBySlug, getNewsData, getNewsRecordBySlug } from '@/lib/cms'
+import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData, getPublicationsData, getPublicationRecordBySlug, getNewsData, getNewsRecordBySlug, getTeamData } from '@/lib/cms'
 import { mapCmsInitiativeToInitiative } from '@/lib/mapCmsInitiative'
 import { mapCmsPublicationToPublication } from '@/lib/mapCmsPublication'
 import { mapCmsNewsToNewsItem } from '@/lib/mapCmsNews'
+import { mapCmsTeamMemberToTeamMember } from '@/lib/mapCmsTeamMember'
 import { mapCmsProjectToProject, projectMatchesGovernorate } from '@/lib/mapCmsProject'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
@@ -245,7 +246,12 @@ export async function getInitiativeBySlug(locale: Locale, slug: string): Promise
 }
 
 export async function getTeam(locale: Locale): Promise<TeamMember[]> {
-  // TODO: Replace with API call: GET /api/team?locale={locale}
+  const cms = await getTeamData(locale)
+
+  if (cms?.records?.length) {
+    return cms.records.map(mapCmsTeamMemberToTeamMember)
+  }
+
   return teamData.sort((a, b) => a.order - b.order)
 }
 

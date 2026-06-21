@@ -817,6 +817,116 @@ export const getMediaCenterPageData = cache(async (locale: string): Promise<CmsM
 })
 
 // ─────────────────────────────────────────────
+// About page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsAboutPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsAboutValue {
+  id?: string | null
+  title?: string | null
+  description?: string | null
+}
+
+export interface CmsAboutPolicy {
+  title?: string | null
+  url?: string | null
+}
+
+export interface CmsAboutPolicyGroup {
+  title?: string | null
+  policies?: CmsAboutPolicy[]
+}
+
+export interface CmsAboutPageSections {
+  hero?: {
+    key: string
+    is_visible: boolean
+    title?: string | null
+    badge?: string | null
+    background_image?: string | null
+  }
+  overview?: {
+    key: string
+    is_visible: boolean
+    title?: string | null
+    description?: string | null
+  }
+  who_we_are?: {
+    key: string
+    is_visible: boolean
+    title?: string | null
+    vision?: string | null
+    mission?: string | null
+    values?: CmsAboutValue[]
+  }
+  team_overview?: {
+    key: string
+    is_visible: boolean
+    title?: string | null
+    subtitle?: string | null
+    preview_count?: number
+    view_all?: { label?: string | null; url?: string | null }
+  }
+  partners_overview?: {
+    key: string
+    is_visible: boolean
+    title?: string | null
+    subtitle?: string | null
+    preview_count?: number
+    view_all?: { label?: string | null; url?: string | null }
+  }
+  governance?: {
+    key: string
+    is_visible: boolean
+    title?: string | null
+    intro?: string | null
+    policy_groups?: CmsAboutPolicyGroup[]
+  }
+}
+
+export interface CmsAboutPageData {
+  page: CmsAboutPageMeta
+  sections: CmsAboutPageSections
+  sections_order?: string[]
+}
+
+export interface CmsTeamMemberRecord {
+  id: number
+  slug: string
+  name_en: string
+  name_ar: string
+  position_en: string
+  position_ar: string
+  department_en?: string | null
+  department_ar?: string | null
+  bio_en?: string | null
+  bio_ar?: string | null
+  email?: string | null
+  linkedin?: string | null
+  photo?: string | null
+  sort_order?: number
+}
+
+export interface CmsTeamData {
+  records: CmsTeamMemberRecord[]
+}
+
+export const getAboutPageData = cache(async (locale: string): Promise<CmsAboutPageData | null> => {
+  return fetchCms<CmsAboutPageData>(`/api/${locale}/about-page`)
+})
+
+export const getTeamData = cache(async (locale: string): Promise<CmsTeamData | null> => {
+  return fetchCms<CmsTeamData>(`/api/${locale}/team`)
+})
+
+// ─────────────────────────────────────────────
 // Section accessors
 // ─────────────────────────────────────────────
 

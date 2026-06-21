@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPersonSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getTeam } from '@/lib/api'
-import { Mail, Linkedin, ArrowLeft, ArrowRight, Building2, ChevronRight } from 'lucide-react'
+import { Mail, Linkedin, ArrowLeft, ArrowRight, Building2 } from 'lucide-react'
 
 interface Props {
   params: Promise<{ locale: string; slug: string }>
@@ -60,21 +60,6 @@ export default async function TeamMemberPage({ params }: Props) {
           image: member.photo,
         }),
       ]} />
-
-      {/* Breadcrumb */}
-      <div className="bg-neutral-50 border-b border-neutral-100">
-        <div className="container-wide py-3 flex items-center gap-2 text-sm text-neutral-500">
-          <Link href={`/${locale}`} className="hover:text-primary-500 transition-colors">
-            {isRTL ? 'الرئيسية' : 'Home'}
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-neutral-300 rtl:rotate-180" />
-          <Link href={`/${locale}/team-governance`} className="hover:text-primary-500 transition-colors">
-            {isRTL ? 'الفريق والحوكمة' : 'Team & Governance'}
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 text-neutral-300 rtl:rotate-180" />
-          <span className="text-primary-500 font-medium">{member.name[locale]}</span>
-        </div>
-      </div>
 
       {/* Hero section */}
       <section className="bg-white">
