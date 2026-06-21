@@ -292,7 +292,49 @@ export async function getPartners(locale: Locale): Promise<Partner[]> {
 }
 
 export async function searchContent(locale: Locale, query: string) {
-  // TODO: Replace with API call: GET /api/search?q={query}&locale={locale}
+  const { fetchSiteSearch } = await import('@/lib/search')
+  const data = await fetchSiteSearch(locale, query, 12)
+
+  if (data) {
+    const find = (type: string) => data.groups.find((g) => g.type === type)?.items ?? []
+    return {
+      projects: find('projects').map((i) => ({
+        id: i.id,
+        type: 'project' as const,
+        title: i.title,
+        excerpt: i.excerpt,
+        slug: i.slug ?? '',
+        image: i.image ?? undefined,
+      })),
+      publications: find('publications').map((i) => ({
+        id: i.id,
+        type: 'publication' as const,
+        title: i.title,
+        excerpt: i.excerpt,
+        slug: i.slug ?? '',
+        date: i.date ?? undefined,
+        image: i.image ?? undefined,
+      })),
+      news: find('news').map((i) => ({
+        id: i.id,
+        type: 'news' as const,
+        title: i.title,
+        excerpt: i.excerpt,
+        slug: i.slug ?? '',
+        date: i.date ?? undefined,
+        image: i.image ?? undefined,
+      })),
+      initiatives: find('initiatives').map((i) => ({
+        id: i.id,
+        type: 'initiative' as const,
+        title: i.title,
+        excerpt: i.excerpt,
+        slug: i.slug ?? '',
+        image: i.image ?? undefined,
+      })),
+    }
+  }
+
   const q = query.toLowerCase()
   const projects = projectsData
     .filter(p => p.title[locale].toLowerCase().includes(q) || p.shortDescription[locale].toLowerCase().includes(q))

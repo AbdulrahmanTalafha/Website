@@ -11,8 +11,9 @@ import type { ResolvedSiteSettings } from '@/lib/siteSettings'
 import { isExternalAsset } from '@/lib/siteSettings'
 import LanguageSwitcher from './LanguageSwitcher'
 import MobileNav from './MobileNav'
+import HeaderSearch from './HeaderSearch'
 import { cn } from '@/lib/utils'
-import { Search, Menu, X, Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Menu, X, Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowLeft, ArrowRight } from 'lucide-react'
 
 interface HeaderProps {
   locale: Locale
@@ -91,13 +92,7 @@ export default function Header({ locale, logoSrc, logoAlt, social, navItems }: H
               </Link>
 
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/${locale}/search`}
-                  aria-label={locale === 'ar' ? 'بحث' : 'Search'}
-                  className="p-2 rounded-full text-neutral-500 hover:text-primary-500 hover:bg-primary-50 transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                </Link>
+                <HeaderSearch locale={locale} />
                 <LanguageSwitcher locale={locale} scrolled={true} />
                 <button
                   onClick={() => setMobileOpen(!mobileOpen)}
