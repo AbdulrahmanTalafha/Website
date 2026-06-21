@@ -7,6 +7,7 @@ import type { Publication } from '@/types'
 import Button from '@/components/common/Button'
 import { ArrowRight, ArrowLeft, Calendar, Download, FileText, ChevronRight, ChevronLeft } from 'lucide-react'
 import { splitFeaturedGridRows } from '@/lib/splitFeaturedGridItems'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 
 interface LatestPublicationsProps {
   locale: Locale
@@ -87,6 +88,7 @@ export default function LatestPublications({
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-60"
                   sizes="(max-width: 1024px) 100vw, 60vw"
+                  unoptimized={isCmsHostedMediaUrl(firstRow.featured.coverImage)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent rtl:bg-gradient-to-l rtl:from-transparent rtl:to-black/40" />
@@ -159,6 +161,7 @@ export default function LatestPublications({
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="128px"
+                        unoptimized={isCmsHostedMediaUrl(pub.coverImage)}
                       />
                       <div className="absolute top-0 inset-x-0 h-1 bg-secondary-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-start" />
                     </div>
@@ -213,6 +216,7 @@ export default function LatestPublications({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="128px"
+                    unoptimized={isCmsHostedMediaUrl(pub.coverImage)}
                   />
                   <div className="absolute top-0 inset-x-0 h-1 bg-secondary-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-start" />
                 </div>

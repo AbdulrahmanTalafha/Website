@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Locale, TeamMember } from '@/types'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import { Mail, Linkedin, ArrowRight, ArrowLeft } from 'lucide-react'
 
 interface TeamMemberCardProps {
@@ -24,6 +25,7 @@ export default function TeamMemberCard({ member, locale }: TeamMemberCardProps) 
         fill
         className="object-cover object-top group-hover:scale-110 transition-transform duration-700 ease-out"
         sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
+        unoptimized={isCmsHostedMediaUrl(member.photo)}
       />
 
       {/* Always-visible bottom gradient — fades out on hover */}

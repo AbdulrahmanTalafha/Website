@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { BASE_URL, buildBreadcrumbSchema, buildMetadata, buildPersonSchema } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
 import { getTeam } from '@/lib/api'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import { Mail, Linkedin, ArrowLeft, ArrowRight, Building2 } from 'lucide-react'
 
 interface Props {
@@ -76,6 +77,7 @@ export default async function TeamMemberPage({ params }: Props) {
                   className="object-cover object-top"
                   sizes="(max-width: 1024px) 100vw, 33vw"
                   priority
+                  unoptimized={isCmsHostedMediaUrl(member.photo)}
                 />
                 {/* Gradient overlay at bottom */}
                 <div className="absolute inset-0 bg-gradient-to-t from-primary-600/80 via-transparent to-transparent" />

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Locale } from '@/types'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import type { Publication } from '@/types'
 import { Calendar, Download, FileText, ArrowRight, ArrowLeft } from 'lucide-react'
 
@@ -41,6 +42,7 @@ export default function PublicationCard({ publication, locale }: PublicationCard
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          unoptimized={isCmsHostedMediaUrl(publication.coverImage)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         {/* Type badge */}

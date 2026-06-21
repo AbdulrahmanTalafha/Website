@@ -6,6 +6,7 @@ import Button from '@/components/common/Button'
 import { ArrowRight, ArrowLeft, Calendar, Tag } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { splitFeaturedGridRows } from '@/lib/splitFeaturedGridItems'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 
 interface LatestNewsProps {
   locale: Locale
@@ -84,6 +85,7 @@ export default function LatestNews({
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-60"
                   sizes="(max-width: 1024px) 100vw, 60vw"
+                  unoptimized={isCmsHostedMediaUrl(firstRow.featured.image)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
 
@@ -127,6 +129,7 @@ export default function LatestNews({
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         sizes="128px"
+                        unoptimized={isCmsHostedMediaUrl(item.image)}
                       />
                       <div className="absolute top-0 inset-x-0 h-1 bg-secondary-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-start" />
                     </div>
@@ -170,6 +173,7 @@ export default function LatestNews({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="128px"
+                    unoptimized={isCmsHostedMediaUrl(item.image)}
                   />
                   <div className="absolute top-0 inset-x-0 h-1 bg-secondary-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-start" />
                 </div>

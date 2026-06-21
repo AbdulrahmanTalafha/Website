@@ -4,6 +4,7 @@ import type { Locale } from '@/types'
 import type { NewsItem } from '@/types'
 import { Calendar, ArrowRight, ArrowLeft, Tag } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 
 interface NewsCardProps {
   news: NewsItem
@@ -48,6 +49,7 @@ export default function NewsCard({ news, locale, featured = false }: NewsCardPro
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 768px) 100vw, 50vw"
+          unoptimized={isCmsHostedMediaUrl(news.image)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         <span className={`absolute top-3 start-3 text-xs font-bold px-2.5 py-1 rounded-full ${catColor}`}>

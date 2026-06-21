@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Publication, Locale } from '@/types'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import {
   Search, X, Calendar, Download, FileText,
   ArrowRight, ArrowLeft, LayoutGrid, List,
@@ -200,7 +201,7 @@ export default function PublicationsGrid({ publications, locale, typeLabels }: P
             className="group relative flex flex-col md:flex-row overflow-hidden rounded-3xl bg-primary-900 mb-6 hover:shadow-2xl hover:shadow-primary-900/20 transition-all duration-500"
           >
             <div className="relative md:w-56 shrink-0 h-64 md:h-auto overflow-hidden" style={{ background: t.color }}>
-              <Image src={featured.coverImage} alt={featured.title[locale]} fill className="object-cover opacity-50 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700" sizes="224px" />
+              <Image src={featured.coverImage} alt={featured.title[locale]} fill className="object-cover opacity-50 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700" sizes="224px" unoptimized={isCmsHostedMediaUrl(featured.coverImage)} />
               <div className="absolute inset-0 flex flex-col justify-end p-4">
                 <div className="bg-black/40 rounded-xl p-3 text-center backdrop-blur-sm">
                   <TypeIcon className="w-6 h-6 text-white mx-auto mb-1" />
@@ -274,7 +275,7 @@ export default function PublicationsGrid({ publications, locale, typeLabels }: P
                 className="group bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:border-primary-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
               >
                 <div className="relative h-52 overflow-hidden" style={{ backgroundColor: t.color + '15' }}>
-                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="25vw" />
+                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="25vw" unoptimized={isCmsHostedMediaUrl(pub.coverImage)} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                   <div className={`absolute top-3 start-3 flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${t.badge}`}>
                     <TypeIcon className="w-3 h-3" />
@@ -323,7 +324,7 @@ export default function PublicationsGrid({ publications, locale, typeLabels }: P
                 className="group flex items-center gap-4 bg-white border border-neutral-100 rounded-2xl p-4 hover:border-primary-200 hover:shadow-lg transition-all duration-300"
               >
                 <div className="relative w-16 h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="64px" />
+                  <Image src={pub.coverImage} alt={pub.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="64px" unoptimized={isCmsHostedMediaUrl(pub.coverImage)} />
                   <div className="absolute top-0 start-0 bottom-0 w-1.5 rounded-s-xl" style={{ backgroundColor: t.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
