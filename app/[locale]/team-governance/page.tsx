@@ -208,7 +208,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
       />
 
       {showTeamGrid && (
-        <section className="section-padding bg-neutral-50">
+        <section id="team" className="section-padding bg-neutral-50 scroll-mt-24">
           <div className="container-wide">
             <SectionHeader
               title={teamGridTitle}
@@ -225,7 +225,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
       )}
 
       {showGovernance && (
-        <section className="section-padding bg-white">
+        <section id="governance" className="section-padding bg-white scroll-mt-24">
           <div className="container-wide">
             <SectionHeader
               title={governanceTitle}

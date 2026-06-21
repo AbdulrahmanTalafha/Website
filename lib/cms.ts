@@ -236,6 +236,15 @@ export interface CmsSettingsData {
     google_tag_manager_id: string | null
     google_site_verification: string | null
   }
+  footer: {
+    newsletter_title: string | null
+    newsletter_subtitle: string | null
+    newsletter_placeholder: string | null
+    newsletter_button: string | null
+    copyright_suffix: string | null
+    bottom_text: string | null
+    sitemap_label: string | null
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -1047,6 +1056,35 @@ export async function submitContactForm(
 }
 
 // ─────────────────────────────────────────────
+// Navigation menu API
+// ─────────────────────────────────────────────
+
+export interface CmsNavItem {
+  id?: number
+  label: string
+  href: string
+  description?: string | null
+  children?: CmsNavItem[]
+}
+
+export interface CmsFooterNavSection {
+  label: string
+  items: Array<{ label: string; href: string }>
+}
+
+export interface CmsNavigationData {
+  header: CmsNavItem[]
+  footer: Record<string, CmsFooterNavSection>
+  config?: {
+    pages: Record<string, string>
+  }
+}
+
+export const getNavigationData = cache(async (locale: string): Promise<CmsNavigationData | null> => {
+  return fetchCms<CmsNavigationData>(`/api/${locale}/navigation`)
+})
+
+// ─────────────────────────────────────────────
 // Join Us page API
 // ─────────────────────────────────────────────
 
@@ -1142,6 +1180,49 @@ export async function submitJoinApplication(
     return {
       ok: true,
       data: payload as JoinApplicationResult,
+    }
+  } catch {
+    return {
+      ok: false,
+      error: { message: 'Network error' },
+    }
+  }
+}
+
+export interface NewsletterSubscriptionResult {
+  reference_number: string
+}
+
+export interface NewsletterSubscriptionError {
+  message: string
+  errors?: Record<string, string[]>
+}
+
+export async function submitNewsletterSubscription(
+  body: { locale: string; email: string },
+): Promise<{ ok: true; data: NewsletterSubscriptionResult } | { ok: false; error: NewsletterSubscriptionError }> {
+  try {
+    const res = await fetch(`${CMS_URL}/api/newsletter-subscribers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const payload = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: {
+          message: typeof payload?.message === 'string' ? payload.message : 'Submission failed',
+          errors: payload?.errors as Record<string, string[]> | undefined,
+        },
+      }
+    }
+
+    return {
+      ok: true,
+      data: payload as NewsletterSubscriptionResult,
     }
   } catch {
     return {

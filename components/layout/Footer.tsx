@@ -5,12 +5,15 @@ import Image from 'next/image'
 import type { Locale } from '@/types'
 import type { ResolvedSiteSettings } from '@/lib/siteSettings'
 import { isExternalAsset } from '@/lib/siteSettings'
-import { footerLinks } from '@/data/navigation'
+import type { ResolvedFooterSection } from '@/lib/mapNavigation'
+import { navItemUrl } from '@/lib/mapNavigation'
+import NewsletterSubscribeForm from './NewsletterSubscribeForm'
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, Mail, Phone, MapPin } from 'lucide-react'
 
 interface FooterProps {
   locale: Locale
   site?: ResolvedSiteSettings
+  footerSections?: Record<string, ResolvedFooterSection>
 }
 
 const socialIcons = {
@@ -22,7 +25,7 @@ const socialIcons = {
   youtube: Youtube,
 }
 
-export default function Footer({ locale, site }: FooterProps) {
+export default function Footer({ locale, site, footerSections }: FooterProps) {
   const year = new Date().getFullYear()
   const name = site?.name ?? (locale === 'ar' ? 'مركز We Rise للمواطنة والتنمية' : 'We Rise Center for Citizenship & Development')
   const description = site?.description ?? ''
@@ -33,6 +36,7 @@ export default function Footer({ locale, site }: FooterProps) {
   const phone = site?.contact.phone ?? ''
   const address = site?.contact.address ?? ''
   const social = site?.social ?? {}
+  const footer = site?.footer
 
   return (
     <footer className="relative z-10 bg-primary-500 text-white">
@@ -98,19 +102,19 @@ export default function Footer({ locale, site }: FooterProps) {
           </div>
 
           {/* Link columns */}
-          {Object.entries(footerLinks).map(([key, section]) => (
+          {Object.entries(footerSections ?? {}).map(([key, section]) => (
             <div key={key}>
               <h3 className="font-bold text-sm mb-4 text-white">
-                {section.label[locale]}
+                {section.label}
               </h3>
               <ul className="space-y-2">
                 {section.items.map((item) => (
-                  <li key={item.href}>
+                  <li key={`${key}-${item.href}-${item.label}`}>
                     <Link
-                      href={item.href === '/sitemap.xml' ? item.href : `/${locale}${item.href}`}
+                      href={navItemUrl(locale, item.href)}
                       className="text-sm text-white/65 hover:text-secondary-400 transition-colors"
                     >
-                      {item.label[locale]}
+                      {item.label}
                     </Link>
                   </li>
                 ))}
@@ -126,28 +130,15 @@ export default function Footer({ locale, site }: FooterProps) {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <p className="font-semibold text-sm">
-                {locale === 'ar' ? 'اشترك في نشرتنا الإخبارية' : 'Subscribe to our newsletter'}
+                {footer?.newsletterTitle ?? (locale === 'ar' ? 'اشترك في نشرتنا الإخبارية' : 'Subscribe to our newsletter')}
               </p>
               <p className="text-xs text-white/60 mt-0.5">
-                {locale === 'ar'
+                {footer?.newsletterSubtitle ?? (locale === 'ar'
                   ? 'كن أول من يصلك أحدث تقاريرنا وفعالياتنا'
-                  : 'Be first to receive our latest reports and events'}
+                  : 'Be first to receive our latest reports and events')}
               </p>
             </div>
-            <form className="flex gap-2 w-full sm:w-auto" onSubmit={(e) => e.preventDefault()}>
-              <input
-                type="email"
-                placeholder={locale === 'ar' ? 'بريدك الإلكتروني' : 'Your email'}
-                className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:border-secondary-400 w-full sm:w-64"
-                aria-label={locale === 'ar' ? 'البريد الإلكتروني' : 'Email address'}
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg text-sm font-medium transition-colors shrink-0"
-              >
-                {locale === 'ar' ? 'اشترك' : 'Subscribe'}
-              </button>
-            </form>
+            <NewsletterSubscribeForm locale={locale} footer={footer} />
           </div>
         </div>
       </div>
@@ -157,14 +148,14 @@ export default function Footer({ locale, site }: FooterProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/50">
             <p>
-              © {year} {name}. {locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+              © {year} {name}. {footer?.copyrightSuffix ?? (locale === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.')}
             </p>
             <div className="flex items-center gap-4">
               <Link href="/sitemap.xml" className="hover:text-white/80 transition-colors">
-                {locale === 'ar' ? 'خريطة الموقع' : 'Sitemap'}
+                {footer?.sitemapLabel ?? (locale === 'ar' ? 'خريطة الموقع' : 'Sitemap')}
               </Link>
               <span>·</span>
-              <span>{locale === 'ar' ? 'تأسس عام 2018 — عمّان، الأردن' : 'Founded 2018 — Amman, Jordan'}</span>
+              <span>{footer?.bottomText ?? (locale === 'ar' ? 'تأسس عام 2018 — عمّان، الأردن' : 'Founded 2018 — Amman, Jordan')}</span>
             </div>
           </div>
         </div>

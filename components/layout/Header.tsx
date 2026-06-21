@@ -4,7 +4,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { Locale } from '@/types'
-import { navigationItems } from '@/data/navigation'
+import type { ResolvedNavItem } from '@/lib/mapNavigation'
+import { navItemUrl } from '@/lib/mapNavigation'
 import { siteData } from '@/data/site'
 import type { ResolvedSiteSettings } from '@/lib/siteSettings'
 import { isExternalAsset } from '@/lib/siteSettings'
@@ -18,6 +19,7 @@ interface HeaderProps {
   logoSrc?: string
   logoAlt?: string
   social?: ResolvedSiteSettings['social']
+  navItems: ResolvedNavItem[]
 }
 
 const defaultSocialLinks = [
@@ -28,7 +30,7 @@ const defaultSocialLinks = [
   { key: 'youtube', icon: Youtube, href: 'https://youtube.com/@werise-jo', label: 'YouTube' },
 ]
 
-export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps) {
+export default function Header({ locale, logoSrc, logoAlt, social, navItems }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const pathname = usePathname()
@@ -54,12 +56,9 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50">
-        {/* ── Top bar: social | logo | search+lang ── */}
         <div className="bg-white border-b border-neutral-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 lg:h-20">
-
-              {/* Social icons */}
               <div className="hidden md:flex items-center gap-1">
                 {socialLinks.map(({ icon: Icon, href, label }) => (
                   <a
@@ -75,7 +74,6 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                 ))}
               </div>
 
-              {/* Logo — centered */}
               <Link
                 href={`/${locale}`}
                 className="flex items-center"
@@ -92,7 +90,6 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                 />
               </Link>
 
-              {/* Right: search + lang + mobile burger */}
               <div className="flex items-center gap-2">
                 <Link
                   href={`/${locale}/search`}
@@ -115,7 +112,6 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
           </div>
         </div>
 
-        {/* ── Nav bar: dark background ── */}
         <nav
           className="hidden lg:block bg-primary-600 shadow-lg"
           aria-label="Main navigation"
@@ -123,17 +119,18 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ul className="flex items-center justify-center gap-0">
-              {navigationItems.map((item) => {
-                const isActive = pathname === `/${locale}${item.href === '/' ? '' : item.href}`
+              {navItems.map((item) => {
+                const itemUrl = navItemUrl(locale, item.href)
+                const isActive = pathname === itemUrl
                 const isOpen = activeDropdown === item.href
                 return (
                   <li
-                    key={item.href}
+                    key={`${item.href}-${item.label}`}
                     className="relative"
                     onMouseEnter={() => setActiveDropdown(item.href)}
                   >
                     <Link
-                      href={`/${locale}${item.href === '/' ? '' : item.href}`}
+                      href={itemUrl}
                       className={cn(
                         'relative flex items-center gap-1 px-4 py-4 text-sm font-semibold transition-colors whitespace-nowrap',
                         'text-white/80 hover:text-white',
@@ -141,17 +138,15 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                         isOpen && 'text-white'
                       )}
                     >
-                      {item.label[locale]}
-                      {item.children && (
+                      {item.label}
+                      {item.children && item.children.length > 0 && (
                         <svg className="w-3 h-3 mt-px opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       )}
-                      {/* Active underline */}
                       {isActive && (
                         <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-secondary-500 rounded-full" />
                       )}
-                      {/* Hover underline */}
                       {!isActive && (
                         <span className={cn(
                           'absolute bottom-0 left-3 right-3 h-0.5 bg-white/30 rounded-full scale-x-0 transition-transform origin-center',
@@ -160,25 +155,23 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                       )}
                     </Link>
 
-                    {/* ── Hover dropdown with description ── */}
                     {isOpen && (
                       <div className={cn(
                         'absolute top-full z-50 min-w-[280px] bg-white shadow-2xl border-t-2 border-secondary-500',
                         isRTL ? 'right-0' : 'left-0'
                       )}>
-                        {item.children ? (
-                          /* Has sub-links: show description + sub-links */
+                        {item.children && item.children.length > 0 ? (
                           <div>
                             {item.description && (
                               <div className="px-5 py-4 bg-primary-50 border-b border-neutral-100">
-                                <p className="text-xs text-primary-500 leading-relaxed">{item.description[locale]}</p>
+                                <p className="text-xs text-primary-500 leading-relaxed">{item.description}</p>
                               </div>
                             )}
                             <ul className="py-2">
                               {item.children.map((child) => (
-                                <li key={child.href}>
+                                <li key={`${child.href}-${child.label}`}>
                                   <Link
-                                    href={`/${locale}${child.href}`}
+                                    href={navItemUrl(locale, child.href)}
                                     className="flex items-start gap-3 px-5 py-3 hover:bg-neutral-50 group transition-colors"
                                   >
                                     <Arrow className={cn(
@@ -186,11 +179,11 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                                     )} />
                                     <div>
                                       <div className="text-sm font-semibold text-primary-600 group-hover:text-secondary-500 transition-colors">
-                                        {child.label[locale]}
+                                        {child.label}
                                       </div>
                                       {child.description && (
                                         <div className="text-xs text-neutral-400 mt-0.5 leading-snug">
-                                          {child.description[locale]}
+                                          {child.description}
                                         </div>
                                       )}
                                     </div>
@@ -200,10 +193,9 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                             </ul>
                           </div>
                         ) : (
-                          /* No sub-links: show description card */
                           item.description && (
                             <Link
-                              href={`/${locale}${item.href === '/' ? '' : item.href}`}
+                              href={itemUrl}
                               className="flex items-start gap-4 px-5 py-4 hover:bg-neutral-50 group transition-colors"
                             >
                               <div className="w-8 h-8 rounded-full bg-secondary-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -211,10 +203,10 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
                               </div>
                               <div>
                                 <div className="text-sm font-bold text-primary-600 mb-1 group-hover:text-secondary-500 transition-colors">
-                                  {item.label[locale]}
+                                  {item.label}
                                 </div>
                                 <p className="text-xs text-neutral-500 leading-relaxed">
-                                  {item.description[locale]}
+                                  {item.description}
                                 </p>
                               </div>
                             </Link>
@@ -230,10 +222,14 @@ export default function Header({ locale, logoSrc, logoAlt, social }: HeaderProps
         </nav>
       </header>
 
-      {/* Spacer for fixed header (top bar h-20 + nav py-4 ~52px = 132px) */}
       <div className="h-16 lg:h-[132px]" />
 
-      <MobileNav locale={locale} isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <MobileNav
+        locale={locale}
+        isOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        navItems={navItems}
+      />
     </>
   )
 }

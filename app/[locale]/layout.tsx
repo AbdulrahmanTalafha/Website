@@ -8,8 +8,9 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ScrollReveal from '@/components/layout/ScrollReveal'
 import AutoBreadcrumb from '@/components/layout/AutoBreadcrumb'
-import { getSettings } from '@/lib/cms'
+import { getSettings, getNavigationData } from '@/lib/cms'
 import { resolveSiteSettings } from '@/lib/siteSettings'
+import { mapCmsFooterNav, mapCmsHeaderNav } from '@/lib/mapNavigation'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -64,6 +65,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const dir = getDir(locale as Locale)
   const settings = await getSettings(locale)
   const site = resolveSiteSettings(settings, locale as Locale)
+  const navCms = await getNavigationData(locale)
+  const headerNav = mapCmsHeaderNav(navCms, locale as Locale)
+  const footerNav = mapCmsFooterNav(navCms, locale as Locale)
 
   return (
     <html lang={locale} dir={dir}>
@@ -73,12 +77,13 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           logoSrc={site.branding.logoSrc}
           logoAlt={site.branding.logoAlt}
           social={site.social}
+          navItems={headerNav}
         />
         <div className="flex-1 flex flex-col min-h-0">
           <AutoBreadcrumb />
           <main className="flex-1 min-h-0 flex flex-col">{children}</main>
         </div>
-        <Footer locale={locale as Locale} site={site} />
+        <Footer locale={locale as Locale} site={site} footerSections={footerNav} />
         <ScrollReveal />
       </body>
     </html>

@@ -111,7 +111,7 @@ export default async function EElectionPage({ params }: PageProps) {
       ]} />
 
       {/* Hero */}
-      <section className="relative min-h-[58vh] flex items-end overflow-hidden">
+      <section id="about" className="relative min-h-[58vh] flex items-end overflow-hidden scroll-mt-24">
         <Image
           src="https://picsum.photos/seed/werise-election-dark/1920/1080"
           alt=""
@@ -158,7 +158,7 @@ export default async function EElectionPage({ params }: PageProps) {
 
           <div className="flex flex-wrap gap-3">
             {active.length > 0 && (
-              <Button href="#active-elections" variant="white" size="lg" icon={<Arrow className="w-4 h-4" />}>
+              <Button href="#voting" variant="white" size="lg" icon={<Arrow className="w-4 h-4" />}>
                 {isRTL ? 'الانتخابات الجارية' : 'Active Elections'}
               </Button>
             )}
@@ -216,7 +216,7 @@ export default async function EElectionPage({ params }: PageProps) {
 
       {/* Active elections */}
       {active.length > 0 && (
-        <section id="active-elections" className="relative section-padding scroll-mt-24">
+        <section id="voting" className="relative section-padding scroll-mt-24">
           <div className="container-wide">
             <SectionTitle accent>
               <span className="flex items-center gap-3">
@@ -249,7 +249,7 @@ export default async function EElectionPage({ params }: PageProps) {
 
       {/* Completed */}
       {completed.length > 0 && (
-        <section className="relative section-padding border-t border-white/5">
+        <section id="results" className="relative section-padding border-t border-white/5 scroll-mt-24">
           <div className="container-wide">
             <SectionTitle>{isRTL ? 'انتخابات مكتملة' : 'Completed Elections'}</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -260,6 +260,40 @@ export default async function EElectionPage({ params }: PageProps) {
           </div>
         </section>
       )}
+
+      {/* FAQ */}
+      <section id="faq" className="relative py-16 md:py-20 border-t border-white/5 scroll-mt-24">
+        <div className="container-wide">
+          <SectionTitle>{isRTL ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}</SectionTitle>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
+            {[
+              {
+                q: isRTL ? 'من يمكنه استخدام منصة الانتخابات؟' : 'Who can use the election platform?',
+                a: isRTL
+                  ? 'المنظمات المدنية، النقابات، الجمعيات، والمؤسسات المجتمعية التي تحتاج انتخابات شفافة وآمنة.'
+                  : 'Civil society organizations, unions, associations, and community institutions that need transparent, secure elections.',
+              },
+              {
+                q: isRTL ? 'هل التصويت آمن؟' : 'Is voting secure?',
+                a: isRTL
+                  ? 'نعم — تستخدم المنصة تشفير وحماية بيانات الناخبين وفق أفضل الممارسات مع سجلات تدقيق قابلة للمراجعة.'
+                  : 'Yes — the platform uses encryption and voter data protection following best practices, with reviewable audit logs.',
+              },
+              {
+                q: isRTL ? 'كيف يمكن طلب المنصة؟' : 'How can we request the platform?',
+                a: isRTL
+                  ? 'تواصل معنا عبر صفحة تواصل معنا وسيقوم فريق We Rise بمساعدتكم في التخطيط والإعداد.'
+                  : 'Contact us through the Contact page and the We Rise team will help you plan and set up your election.',
+              },
+            ].map((item) => (
+              <div key={item.q} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+                <h3 className="font-black text-white mb-2">{item.q}</h3>
+                <p className="text-white/50 text-sm leading-relaxed">{item.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Bottom CTA */}
       <section className="relative py-16 md:py-20 border-t border-white/10">

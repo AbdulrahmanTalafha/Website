@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { Eye, Target, Heart, Users, Shield, ChevronRight, ChevronLeft, ExternalLink, FileText } from 'lucide-react'
 import type { Locale } from '@/types'
@@ -64,13 +64,28 @@ export default function AboutContent({ locale, pageCms, connected }: AboutConten
     ? governance.policy_groups
     : []
 
-  const sections = [
+  const sections = useMemo(() => [
     { id: 'overview', label: isRTL ? 'نظرة عامة' : 'Overview', visible: !connected || overview?.is_visible !== false },
     { id: 'who-we-are', label: isRTL ? 'الرؤية والرسالة والقيم' : 'Vision, Mission & Values', visible: !connected || whoWeAre?.is_visible !== false },
     { id: 'governance', label: isRTL ? 'الحوكمة والشفافية' : 'Governance', visible: !connected || governance?.is_visible !== false },
-  ].filter((s) => s.visible)
+  ].filter((s) => s.visible), [connected, overview?.is_visible, whoWeAre?.is_visible, governance?.is_visible, isRTL])
+
+  const sectionIds = useMemo(() => sections.map((s) => s.id).join(','), [sections])
 
   const [active, setActive] = useState(sections[0]?.id ?? 'overview')
+
+  useEffect(() => {
+    const applyHash = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (hash && sections.some((s) => s.id === hash)) {
+        setActive(hash)
+      }
+    }
+
+    applyHash()
+    window.addEventListener('hashchange', applyHash)
+    return () => window.removeEventListener('hashchange', applyHash)
+  }, [sectionIds, sections])
 
   return (
     <div className="container-wide py-12 md:py-16">

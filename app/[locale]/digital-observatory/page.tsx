@@ -486,7 +486,7 @@ export default async function DigitalObservatoryPage({ params, searchParams }: P
             </div>
 
             {/* Methodology steps */}
-            <div className={`rounded-3xl p-7 ${V.card}`}>
+            <div id="methodology" className={`rounded-3xl p-7 scroll-mt-24 ${V.card}`}>
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 bg-blue-500/10">
                 <Microscope className="w-5 h-5 text-blue-500" />
               </div>
