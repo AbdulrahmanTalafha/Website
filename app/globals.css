@@ -169,6 +169,78 @@ body {
   border-radius: 4px;
 }
 
+/* ─── CMS rich text (Filament RichEditor output) ─────────────── */
+.cms-rich-text {
+  line-height: 1.75;
+  word-wrap: break-word;
+}
+
+.cms-rich-text p {
+  margin-bottom: 0.875rem;
+}
+
+.cms-rich-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* TipTap / Filament empty line: <p><br></p> */
+.cms-rich-text p:empty,
+.cms-rich-text p:has(> br:only-child) {
+  min-height: 1.75em;
+}
+
+.cms-rich-text ul,
+.cms-rich-text ol {
+  margin: 0.75rem 0;
+  padding-inline-start: 1.5rem;
+}
+
+.cms-rich-text ul {
+  list-style-type: disc;
+}
+
+.cms-rich-text ol {
+  list-style-type: decimal;
+}
+
+.cms-rich-text li {
+  margin-bottom: 0.35rem;
+}
+
+.cms-rich-text li:last-child {
+  margin-bottom: 0;
+}
+
+.cms-rich-text a {
+  color: var(--color-secondary);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.cms-rich-text a:hover {
+  opacity: 0.85;
+}
+
+.cms-rich-text strong {
+  font-weight: 700;
+}
+
+.cms-rich-text em {
+  font-style: italic;
+}
+
+.cms-rich-text u {
+  text-decoration: underline;
+}
+
+.cms-rich-text-invert {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cms-rich-text-invert a {
+  color: #fb655f;
+}
+
 /* ─── Print ──────────────────────────────────────────────────── */
 @media print {
   .no-print { display: none !important; }

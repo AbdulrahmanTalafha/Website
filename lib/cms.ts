@@ -482,6 +482,118 @@ export const getPartnersPageData = cache(async (locale: string): Promise<CmsPart
 })
 
 // ─────────────────────────────────────────────
+// Initiatives module API
+// ─────────────────────────────────────────────
+
+export interface CmsInitiativeOutput {
+  en?: string | null
+  ar?: string | null
+}
+
+export interface CmsInitiativeListRecord {
+  id: number
+  slug: string
+  title_en: string
+  title_ar: string
+  summary_en?: string | null
+  summary_ar?: string | null
+  description_en?: string | null
+  description_ar?: string | null
+  objective_en?: string | null
+  objective_ar?: string | null
+  category_key?: string | null
+  category_en?: string | null
+  category_ar?: string | null
+  category?: string | null
+  outputs?: CmsInitiativeOutput[]
+  reach_value?: number | null
+  reach_suffix_en?: string | null
+  reach_suffix_ar?: string | null
+  reach_suffix?: string | null
+  featured_image?: string | null
+  images?: string[]
+  videos?: string[]
+  related_project_id?: number | null
+  related_project_slug?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  is_ongoing?: boolean
+}
+
+export interface CmsInitiativesStats {
+  total: number
+  ongoing: number
+}
+
+export interface CmsInitiativesData {
+  records: CmsInitiativeListRecord[]
+  stats: CmsInitiativesStats
+  config?: {
+    categories: Record<string, string>
+  }
+}
+
+export const getInitiativesData = cache(async (locale: string): Promise<CmsInitiativesData | null> => {
+  return fetchCms<CmsInitiativesData>(`/api/${locale}/initiatives`)
+})
+
+export const getInitiativeRecordBySlug = cache(async (
+  locale: string,
+  slug: string,
+): Promise<CmsInitiativeListRecord | null> => {
+  const data = await fetchCms<{ record: CmsInitiativeListRecord }>(`/api/${locale}/initiatives/${slug}`)
+  return data?.record ?? null
+})
+
+// ─────────────────────────────────────────────
+// Initiatives & Campaigns listing page (CMS)
+// ─────────────────────────────────────────────
+
+export interface CmsInitiativesPageMeta {
+  key: string
+  seo_title?: string | null
+  seo_description?: string | null
+  is_indexed: boolean
+  updated_at?: string
+}
+
+export interface CmsInitiativesPageHeroSection {
+  key: string
+  is_visible: boolean
+  title?: string | null
+  subtitle?: string | null
+  badge?: string | null
+  background_image?: string | null
+  use_live_stats?: boolean
+  stats?: Array<{ stat_key?: string | null; value: string; suffix?: string; label: string }>
+}
+
+export interface CmsInitiativesPageSections {
+  hero?: CmsInitiativesPageHeroSection
+  stats_kpi?: { key: string; is_visible: boolean }
+  initiatives_grid?: { key: string; is_visible: boolean; title?: string | null }
+}
+
+export interface CmsInitiativesPageData {
+  page: CmsInitiativesPageMeta
+  sections: CmsInitiativesPageSections
+  sections_order?: string[]
+  sections_list?: Array<{
+    key: string
+    type: string
+    is_visible: boolean
+    data: Record<string, unknown>
+  }>
+  config?: {
+    categories: Record<string, string>
+  }
+}
+
+export const getInitiativesPageData = cache(async (locale: string): Promise<CmsInitiativesPageData | null> => {
+  return fetchCms<CmsInitiativesPageData>(`/api/${locale}/initiatives-page`)
+})
+
+// ─────────────────────────────────────────────
 // Section accessors
 // ─────────────────────────────────────────────
 

@@ -143,6 +143,8 @@ export interface Initiative {
   objective: Record<Locale, string>
   outputs: Array<Record<Locale, string>>
   category: InitiativeCategory
+  reachValue?: number
+  reachSuffix?: Record<Locale, string>
   images: string[]
   videos?: string[] // YouTube embed URLs or direct mp4 URLs
   relatedProject?: string // Project id

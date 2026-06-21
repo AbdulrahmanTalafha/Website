@@ -4,12 +4,17 @@ import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Initiative, Locale } from '@/types'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import {
   Search, X, Calendar, ArrowRight, ArrowLeft,
   LayoutGrid, List, Zap, CheckCircle2, Megaphone, Star,
 } from 'lucide-react'
 
-interface Props { initiatives: Initiative[]; locale: Locale }
+interface Props {
+  initiatives: Initiative[]
+  locale: Locale
+  categoryLabels?: Record<string, string>
+}
 
 const CATEGORY = {
   'initiative':        { ar: 'مبادرة',        en: 'Initiative',        badge: 'bg-purple-50 text-purple-700 border-purple-200',  dot: 'bg-purple-500',  color: '#8b5cf6' },
@@ -20,9 +25,12 @@ const CATEGORY = {
 
 function isOngoing(init: Initiative) { return !init.endDate || new Date(init.endDate) >= new Date() }
 
-export default function InitiativesGrid({ initiatives, locale }: Props) {
+export default function InitiativesGrid({ initiatives, locale, categoryLabels = {} }: Props) {
   const isRTL = locale === 'ar'
   const Arrow = isRTL ? ArrowLeft : ArrowRight
+
+  const categoryLabel = (key: keyof typeof CATEGORY) =>
+    categoryLabels[key] ?? CATEGORY[key][isRTL ? 'ar' : 'en']
 
   const [search, setSearch]     = useState('')
   const [catTab, setCatTab]     = useState('all')
@@ -108,7 +116,7 @@ export default function InitiativesGrid({ initiatives, locale }: Props) {
           className="group relative flex flex-col md:flex-row overflow-hidden rounded-3xl bg-primary-900 mb-6 min-h-[280px] hover:shadow-2xl hover:shadow-primary-900/20 transition-all duration-500"
         >
           <div className="relative md:w-1/2 h-52 md:h-auto overflow-hidden">
-            <Image src={featured.featuredImage} alt={featured.title[locale]} fill className="object-cover opacity-70 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" sizes="50vw" />
+            <Image src={featured.featuredImage} alt={featured.title[locale]} fill className="object-cover opacity-70 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" sizes="50vw" unoptimized={isCmsHostedMediaUrl(featured.featuredImage)} />
             <div className={`absolute inset-0 ${isRTL ? 'bg-gradient-to-l' : 'bg-gradient-to-r'} from-primary-900/70 via-transparent to-transparent`} />
           </div>
           <div className="relative md:w-1/2 p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-primary-800 to-primary-900">
@@ -119,13 +127,15 @@ export default function InitiativesGrid({ initiatives, locale }: Props) {
                   {isRTL ? 'مميز' : 'Featured'}
                 </span>
                 <span className="text-xs text-white/50 bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
-                  {CATEGORY[featured.category][isRTL ? 'ar' : 'en']}
+                    {categoryLabel(featured.category)}
                 </span>
               </div>
               <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3 group-hover:text-secondary-300 transition-colors">
                 {featured.title[locale]}
               </h2>
-              <p className="text-white/60 text-sm leading-relaxed line-clamp-2 mb-6">{featured.shortDescription[locale]}</p>
+              {featured.shortDescription[locale] && (
+                <p className="text-white/60 text-sm leading-relaxed line-clamp-2 mb-6">{featured.shortDescription[locale]}</p>
+              )}
               <div className="grid grid-cols-3 gap-3 mb-5">
                 {[
                   { label: isRTL ? 'مخرج' : 'Outputs', value: featured.outputs.length },
@@ -164,11 +174,11 @@ export default function InitiativesGrid({ initiatives, locale }: Props) {
                 className="group bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:border-primary-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
               >
                 <div className="relative h-44 overflow-hidden bg-primary-50">
-                  <Image src={init.featuredImage} alt={init.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="33vw" />
+                  <Image src={init.featuredImage} alt={init.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="33vw" unoptimized={isCmsHostedMediaUrl(init.featuredImage)} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   <div className={`absolute top-3 start-3 flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${cat.badge}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${cat.dot} ${ongoing ? 'animate-pulse' : ''}`} />
-                    {cat[isRTL ? 'ar' : 'en']}
+                    {categoryLabel(init.category)}
                   </div>
                 </div>
                 <div className="h-0.5 w-full" style={{ background: cat.color }} />
@@ -176,7 +186,9 @@ export default function InitiativesGrid({ initiatives, locale }: Props) {
                   <h3 className="font-black text-primary-500 text-base leading-snug mb-2 group-hover:text-secondary-500 transition-colors line-clamp-2">
                     {init.title[locale]}
                   </h3>
-                  <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2 mb-4">{init.shortDescription[locale]}</p>
+                  {init.shortDescription[locale] && (
+                    <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2 mb-4">{init.shortDescription[locale]}</p>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-neutral-400 mb-4">
                     <Calendar className="w-3.5 h-3.5 shrink-0" />
                     {fmtDate(init.startDate)}
@@ -210,14 +222,14 @@ export default function InitiativesGrid({ initiatives, locale }: Props) {
                 className="group flex items-center gap-4 bg-white border border-neutral-100 rounded-2xl p-4 hover:border-primary-200 hover:shadow-lg transition-all duration-300"
               >
                 <div className="relative w-24 h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-                  <Image src={init.featuredImage} alt={init.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="96px" />
+                  <Image src={init.featuredImage} alt={init.title[locale]} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="96px" unoptimized={isCmsHostedMediaUrl(init.featuredImage)} />
                 </div>
                 <div className="w-1 h-14 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${cat.badge}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${cat.dot} ${ongoing ? 'animate-pulse' : ''}`} />
-                      {cat[isRTL ? 'ar' : 'en']}
+                      {categoryLabel(init.category)}
                     </span>
                   </div>
                   <h3 className="font-black text-primary-500 text-sm leading-snug group-hover:text-secondary-500 transition-colors line-clamp-1 mb-1">{init.title[locale]}</h3>

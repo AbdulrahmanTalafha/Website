@@ -23,6 +23,8 @@ export const initiativesData: Initiative[] = [
       { ar: 'تنظيم 5 جلسات حوارية افتراضية مع خبراء', en: 'Organizing 5 virtual dialogue sessions with experts' },
     ],
     category: 'digital-campaign',
+    reachValue: 50000,
+    reachSuffix: { ar: 'مستفيد/متابع', en: 'beneficiary/follower' },
     images: ['https://picsum.photos/seed/i1a/800/500', 'https://picsum.photos/seed/i1b/800/500'],
     videos: ['https://www.youtube.com/embed/dQw4w9WgXcQ'],
     featuredImage: 'https://picsum.photos/seed/i1-feat/800/500',

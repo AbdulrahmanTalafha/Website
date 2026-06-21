@@ -12,7 +12,8 @@ import { electionsData } from '@/data/elections'
 import { partnersData } from '@/data/partners'
 import { homeData } from '@/data/home'
 import { aboutData } from '@/data/about'
-import { getPartnersData, getProjectsData } from '@/lib/cms'
+import { getInitiativesData, getInitiativeRecordBySlug, getPartnersData, getProjectsData } from '@/lib/cms'
+import { mapCmsInitiativeToInitiative } from '@/lib/mapCmsInitiative'
 import { mapCmsProjectToProject, projectMatchesGovernorate } from '@/lib/mapCmsProject'
 import { resolveCmsMediaUrl } from '@/lib/cmsMedia'
 import { staticPartnerLogoByNameEn } from '@/lib/partnerLogos'
@@ -147,13 +148,39 @@ export async function getNewsBySlug(locale: Locale, slug: string): Promise<NewsI
 }
 
 export async function getInitiatives(locale: Locale, category?: string): Promise<Initiative[]> {
-  // TODO: Replace with API call: GET /api/initiatives?locale={locale}
-  if (category) return initiativesData.filter(i => i.category === category)
-  return initiativesData
+  const cms = await getInitiativesData(locale)
+
+  if (!cms?.records?.length) {
+    if (category) return initiativesData.filter(i => i.category === category)
+    return initiativesData
+  }
+
+  const initiatives = cms.records.map(mapCmsInitiativeToInitiative)
+  if (category) return initiatives.filter(i => i.category === category)
+
+  return initiatives
+}
+
+export async function getInitiativesStats(locale: Locale) {
+  const cms = await getInitiativesData(locale)
+  if (cms?.stats) return cms.stats
+
+  const initiatives = await getInitiatives(locale)
+  const ongoing = initiatives.filter(i => !i.endDate || new Date(i.endDate) >= new Date()).length
+
+  return { total: initiatives.length, ongoing }
 }
 
 export async function getInitiativeBySlug(locale: Locale, slug: string): Promise<Initiative | null> {
-  // TODO: Replace with API call: GET /api/initiatives/{slug}?locale={locale}
+  const detailRecord = await getInitiativeRecordBySlug(locale, slug)
+  if (detailRecord) return mapCmsInitiativeToInitiative(detailRecord)
+
+  const cms = await getInitiativesData(locale)
+  if (cms?.records?.length) {
+    const record = cms.records.find((item) => item.slug === slug)
+    if (record) return mapCmsInitiativeToInitiative(record)
+  }
+
   return initiativesData.find(i => i.slug === slug) ?? null
 }
 

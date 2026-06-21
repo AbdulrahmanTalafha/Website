@@ -5,13 +5,16 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { BASE_URL, buildArticleSchema, buildBreadcrumbSchema, buildMetadata } from '@/lib/seo'
 import JsonLd from '@/components/common/JsonLd'
-import { getInitiativeBySlug } from '@/lib/api'
-import { initiativesData } from '@/data/initiatives'
+import { getInitiativeBySlug, getInitiatives, getProjectBySlug } from '@/lib/api'
 import { projectsData } from '@/data/projects'
+import { formatInitiativeReach } from '@/lib/initiativeDisplay'
+import { isCmsHostedMediaUrl } from '@/lib/cmsMedia'
 import {
   Calendar, CheckCircle2, ArrowLeft, ArrowRight,
   Target, Megaphone, ExternalLink, Sparkles, ChevronRight, ChevronLeft, FolderOpen, PlayCircle,
 } from 'lucide-react'
+import ProjectGallery from '@/components/projects/ProjectGallery'
+import CmsRichText from '@/components/common/CmsRichText'
 import DesignSwitcher from '@/components/projects/DesignSwitcher'
 
 interface InitiativeDetailProps {
@@ -19,8 +22,11 @@ interface InitiativeDetailProps {
   searchParams: Promise<{ v?: string }>
 }
 
+export const revalidate = 60
+
 export async function generateStaticParams() {
-  return initiativesData.flatMap(i =>
+  const initiatives = await getInitiatives('en')
+  return initiatives.flatMap(i =>
     ['ar', 'en'].map(locale => ({ locale, slug: i.slug }))
   )
 }
@@ -30,11 +36,14 @@ export async function generateMetadata({ params, searchParams }: InitiativeDetai
   const { v } = await searchParams
   const initiative = await getInitiativeBySlug(locale, slug)
   if (!initiative) return {}
+
+  const summary = initiative.shortDescription[locale]
+
   return buildMetadata({
     locale,
     canonicalPath: `/${locale}/initiatives-campaigns/${slug}`,
     customTitle: initiative.title[locale],
-    customDescription: initiative.shortDescription[locale],
+    customDescription: summary,
     noIndex: Boolean(v),
     ogType: 'article',
   })
@@ -60,30 +69,35 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
   const Chevron = isRTL ? ChevronLeft : ChevronRight
   const cat = CATEGORY[initiative.category]
   const ongoing = !initiative.endDate || new Date(initiative.endDate) >= new Date()
+  const reachDisplay = formatInitiativeReach(initiative, locale)
 
   const fmtDate = (d: string) => new Date(d).toLocaleDateString(isRTL ? 'ar-JO' : 'en-GB', { year: 'numeric', month: 'long' })
 
   const relatedProject = initiative.relatedProject
-    ? projectsData.find(p => p.id === initiative.relatedProject) ?? null
+    ? await getProjectBySlug(locale, initiative.relatedProject)
+      ?? projectsData.find(p => p.id === initiative.relatedProject || p.slug === initiative.relatedProject)
     : null
 
   const basePath    = `/${locale}/initiatives-campaigns/${slug}`
   const darkHref    = basePath
   const lightHref   = `${basePath}?v=light`
   const classicHref = `${basePath}?v=classic`
+  const summary = initiative.shortDescription[locale]
   const schemas = [
     buildBreadcrumbSchema([
       { name: isRTL ? 'الرئيسية' : 'Home', url: `${BASE_URL}/${locale}` },
       { name: isRTL ? 'المبادرات والحملات' : 'Initiatives & Campaigns', url: `${BASE_URL}/${locale}/initiatives-campaigns` },
       { name: initiative.title[locale], url: `${BASE_URL}/${locale}/initiatives-campaigns/${slug}` },
     ]),
-    buildArticleSchema({
-      title: initiative.title[locale],
-      description: initiative.shortDescription[locale],
-      datePublished: initiative.startDate,
-      image: initiative.featuredImage,
-      locale,
-    }),
+    ...(summary
+      ? [buildArticleSchema({
+          title: initiative.title[locale],
+          description: summary,
+          datePublished: initiative.startDate,
+          image: initiative.featuredImage,
+          locale,
+        })]
+      : []),
   ]
 
   /* ─────────────────────────────────────────────
@@ -95,7 +109,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
 
       {/* Hero */}
       <div className="relative h-[70vh] min-h-[520px] overflow-hidden bg-primary-900">
-        <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />
+        <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" unoptimized={isCmsHostedMediaUrl(initiative.featuredImage)} />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/50 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary-900/60 to-transparent" />
 
@@ -153,7 +167,10 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
               </div>
               <h2 className="text-lg font-black text-white">{isRTL ? 'عن النشاط' : 'About'}</h2>
             </div>
-            <p className="text-white/70 leading-relaxed text-base">{initiative.description[locale]}</p>
+            <CmsRichText
+              html={initiative.description[locale]}
+              className="cms-rich-text-invert text-base"
+            />
           </div>
 
           {/* Objective */}
@@ -170,6 +187,11 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
               <span>{fmtDate(initiative.startDate)}</span>
               {initiative.endDate && <><span className="text-white/20">—</span><span>{fmtDate(initiative.endDate)}</span></>}
             </div>
+            {reachDisplay && (
+              <p className="text-sm text-white/60 mt-4">
+                <span className="font-bold text-white/80">{isRTL ? 'الوصول:' : 'Reach:'}</span> {reachDisplay}
+              </p>
+            )}
           </div>
 
           {/* Outputs */}
@@ -211,13 +233,12 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                 </div>
               )}
               {initiative.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {initiative.images.map((img, i) => (
-                    <div key={i} className="relative aspect-video rounded-2xl overflow-hidden bg-white/5">
-                      <Image src={img} alt={`${initiative.title[locale]} ${i + 1}`} fill className="object-cover hover:scale-105 transition-transform duration-500" sizes="33vw" />
-                    </div>
-                  ))}
-                </div>
+                <ProjectGallery
+                  images={initiative.images}
+                  alt={initiative.title[locale]}
+                  variant="dark"
+                  isRTL={isRTL}
+                />
               )}
             </div>
           )}
@@ -233,7 +254,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
               </div>
               <Link href={`/${locale}/programs-projects/${relatedProject.slug}`} className="group flex items-center gap-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl p-5 transition-all">
                 <div className="relative w-20 h-16 rounded-xl overflow-hidden shrink-0 bg-white/10">
-                  <Image src={relatedProject.featuredImage} alt={relatedProject.title[locale]} fill className="object-cover" sizes="80px" />
+                  <Image src={relatedProject.featuredImage} alt={relatedProject.title[locale]} fill className="object-cover" sizes="80px" unoptimized={isCmsHostedMediaUrl(relatedProject.featuredImage)} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-black text-sm leading-tight truncate">{relatedProject.title[locale]}</p>
@@ -267,7 +288,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
 
       {/* Hero */}
       <div className="relative h-[60vh] min-h-[440px] overflow-hidden bg-neutral-100">
-        <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-60" priority sizes="100vw" />
+        <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-60" priority sizes="100vw" unoptimized={isCmsHostedMediaUrl(initiative.featuredImage)} />
         <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent" />
 
         <div className="absolute top-0 inset-x-0 z-10 container-wide pt-5">
@@ -320,7 +341,10 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                   </div>
                   <h2 className="text-xl font-black text-primary-900">{isRTL ? 'عن النشاط' : 'About'}</h2>
                 </div>
-                <p className="text-neutral-600 leading-relaxed">{initiative.description[locale]}</p>
+                <CmsRichText
+                  html={initiative.description[locale]}
+                  className="text-neutral-600 leading-relaxed"
+                />
               </div>
 
               <div id="objective" className="scroll-mt-24 bg-white rounded-3xl p-8 border border-neutral-100 shadow-sm">
@@ -365,13 +389,12 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                     </div>
                   )}
                   {initiative.images.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {initiative.images.map((img, i) => (
-                        <div key={i} className="relative aspect-video rounded-2xl overflow-hidden bg-neutral-100">
-                          <Image src={img} alt={`${initiative.title[locale]} ${i + 1}`} fill className="object-cover hover:scale-105 transition-transform duration-500" sizes="33vw" />
-                        </div>
-                      ))}
-                    </div>
+                    <ProjectGallery
+                      images={initiative.images}
+                      alt={initiative.title[locale]}
+                      variant="light"
+                      isRTL={isRTL}
+                    />
                   )}
                 </div>
               )}
@@ -386,7 +409,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                   </div>
                   <Link href={`/${locale}/programs-projects/${relatedProject.slug}`} className="group flex items-center gap-4 p-4 rounded-2xl border border-neutral-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all">
                     <div className="relative w-20 h-14 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-                      <Image src={relatedProject.featuredImage} alt={relatedProject.title[locale]} fill className="object-cover" sizes="80px" />
+                      <Image src={relatedProject.featuredImage} alt={relatedProject.title[locale]} fill className="object-cover" sizes="80px" unoptimized={isCmsHostedMediaUrl(relatedProject.featuredImage)} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-primary-900 text-sm leading-tight">{relatedProject.title[locale]}</p>
@@ -426,6 +449,12 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                       <p className="text-sm font-bold text-primary-500 mt-1">{fmtDate(initiative.endDate)}</p>
                     </div>
                   )}
+                  {reachDisplay && (
+                    <div>
+                      <span className="text-xs text-neutral-400 font-bold uppercase tracking-wider">{isRTL ? 'الوصول' : 'Reach'}</span>
+                      <p className="text-sm font-bold text-primary-500 mt-1">{reachDisplay}</p>
+                    </div>
+                  )}
                   <div>
                     <span className="text-xs text-neutral-400 font-bold uppercase tracking-wider">{isRTL ? 'عدد المخرجات' : 'Outputs'}</span>
                     <p className="text-2xl font-black text-primary-500 mt-1">{initiative.outputs.length}</p>
@@ -456,7 +485,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
 
       {/* Hero */}
       <div className="relative h-72 md:h-96 overflow-hidden bg-primary-900">
-        <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" />
+        <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover opacity-40" priority sizes="100vw" unoptimized={isCmsHostedMediaUrl(initiative.featuredImage)} />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/60 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end container-wide pb-10">
           <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border w-fit mb-4 ${cat.dark}`}>
@@ -493,7 +522,10 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                   </div>
                   <h2 className="text-xl font-black text-primary-900">{isRTL ? 'عن النشاط' : 'About'}</h2>
                 </div>
-                <p className="text-neutral-600 leading-relaxed">{initiative.description[locale]}</p>
+                <CmsRichText
+                  html={initiative.description[locale]}
+                  className="text-neutral-600 leading-relaxed"
+                />
               </div>
 
               {/* Objective */}
@@ -546,13 +578,12 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                     </div>
                   )}
                   {initiative.images.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {initiative.images.map((img, i) => (
-                        <div key={i} className="relative aspect-video rounded-2xl overflow-hidden bg-neutral-100">
-                          <Image src={img} alt={`${initiative.title[locale]} ${i + 1}`} fill className="object-cover hover:scale-105 transition-transform duration-500" sizes="33vw" />
-                        </div>
-                      ))}
-                    </div>
+                    <ProjectGallery
+                      images={initiative.images}
+                      alt={initiative.title[locale]}
+                      variant="classic"
+                      isRTL={isRTL}
+                    />
                   )}
                 </div>
               )}
@@ -568,7 +599,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                   </div>
                   <Link href={`/${locale}/programs-projects/${relatedProject.slug}`} className="group flex items-center gap-4 p-4 rounded-2xl border border-neutral-100 hover:border-neutral-200 hover:bg-neutral-50 transition-all">
                     <div className="relative w-20 h-14 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-                      <Image src={relatedProject.featuredImage} alt={relatedProject.title[locale]} fill className="object-cover" sizes="80px" />
+                      <Image src={relatedProject.featuredImage} alt={relatedProject.title[locale]} fill className="object-cover" sizes="80px" unoptimized={isCmsHostedMediaUrl(relatedProject.featuredImage)} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-primary-900 text-sm leading-tight">{relatedProject.title[locale]}</p>
@@ -584,7 +615,7 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
             <div>
               <div className="bg-white border border-neutral-100 rounded-2xl p-6 shadow-sm sticky top-12">
                 <div className="w-full aspect-video rounded-xl overflow-hidden mb-5 bg-neutral-100 relative">
-                  <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover" sizes="400px" />
+                  <Image src={initiative.featuredImage} alt={initiative.title[locale]} fill className="object-cover" sizes="400px" unoptimized={isCmsHostedMediaUrl(initiative.featuredImage)} />
                 </div>
                 <h3 className="text-sm font-black text-neutral-400 uppercase tracking-wider mb-4">{isRTL ? 'تفاصيل النشاط' : 'Details'}</h3>
                 <div className="space-y-3 text-sm">
@@ -606,6 +637,12 @@ export default async function InitiativeDetailPage({ params, searchParams }: Ini
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-neutral-400 font-medium flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{isRTL ? 'النهاية' : 'End'}</span>
                       <span className="font-bold text-primary-500">{fmtDate(initiative.endDate)}</span>
+                    </div>
+                  )}
+                  {reachDisplay && (
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-neutral-400 font-medium">{isRTL ? 'الوصول' : 'Reach'}</span>
+                      <span className="font-bold text-primary-500">{reachDisplay}</span>
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-2 pt-2 border-t border-neutral-100">
